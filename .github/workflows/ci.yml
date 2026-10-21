@@ -36,7 +36,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install libusb and pkg-config
         run: make install
@@ -57,7 +57,7 @@ jobs:
     env:
       VERSION: ${{ inputs.version || '0.0.0-ci' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install libusb and pkg-config
         run: make install
@@ -124,7 +124,7 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Full history: the secret scan must see more than the latest commit.
           fetch-depth: 0
