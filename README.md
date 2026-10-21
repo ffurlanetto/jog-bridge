@@ -92,9 +92,18 @@ show the "Hercules MP3 e2" port while the bridge is running.
 open dist/jog-bridge-1.0.0.pkg
 ```
 
-The `.pkg` is not signed with a Developer ID: Gatekeeper will block it on first double-click
-("unidentified developer"). Right-click → *Open*, or *System Settings → Privacy & Security →
-Open Anyway*.
+The `.pkg` is neither signed nor notarised, so Gatekeeper blocks a **downloaded** copy on first
+double-click ("Apple could not verify that … is free of malware"). Do not click *Move to Bin*;
+click *Done*, then open *System Settings → Privacy & Security* and click **Open Anyway** for the
+package, or remove the quarantine attribute from the Terminal:
+
+```sh
+xattr -d com.apple.quarantine ~/Downloads/jog-bridge-1.0.0.pkg
+open ~/Downloads/jog-bridge-1.0.0.pkg
+```
+
+A package you build yourself with `./scripts/build-pkg.sh` carries no quarantine attribute and
+opens without a warning.
 
 The installation copies the binary to `/usr/local/bin/`, installs the LaunchAgent in
 `~/Library/LaunchAgents/` and starts it immediately.

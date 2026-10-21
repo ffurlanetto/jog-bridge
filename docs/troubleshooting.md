@@ -61,8 +61,23 @@ the driver. Mixxx and other DJ software can also claim the console.
 
 ## Gatekeeper blocks the .pkg
 
-The package is unsigned. Right-click → *Open*, or *System Settings → Privacy & Security →
-Open Anyway*.
+The package is neither signed nor notarised. A downloaded copy (a GitHub release, or the
+artifact of a CI run) is blocked with *"Apple could not verify that … is free of malware"*.
+
+1. Click **Done** — not *Move to Bin*.
+2. Open *System Settings → Privacy & Security*, scroll to the message about the package and
+   click **Open Anyway** (your password is asked). The button only appears for a short while
+   after the blocked attempt; if it is gone, try to open the package again.
+3. Or, from the Terminal:
+
+   ```sh
+   xattr -d com.apple.quarantine ~/Downloads/jog-bridge-X.Y.Z.pkg
+   open ~/Downloads/jog-bridge-X.Y.Z.pkg
+   ```
+
+On recent macOS versions, right-click → *Open* is not enough for an installer package. A package
+built locally (`make pkg`) has no quarantine attribute and opens without a warning. Signing and
+notarising the package would remove this step ([ADR 0006](adr/0006-launchagent-and-unsigned-pkg.md)).
 
 ## Reporting a problem
 
