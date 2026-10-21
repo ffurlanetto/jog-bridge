@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="t">
+  <title id="t">jog-bridge — USB-to-MIDI bridge for DJ controllers on macOS</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#12223D"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <g transform="translate(100 90) scale(0.9)">
+    <circle cx="256" cy="256" r="176" fill="#111C33" stroke="#22D3EE" stroke-width="12"/>
+    <circle cx="256" cy="256" r="146" fill="none" stroke="#22D3EE" stroke-opacity=".25" stroke-width="3"/>
+    <circle cx="256" cy="256" r="118" fill="none" stroke="#22D3EE" stroke-opacity=".18" stroke-width="3"/>
+    <line x1="256" y1="84" x2="256" y2="116" stroke="#F472B6" stroke-width="14" stroke-linecap="round" transform="rotate(-35 256 256)"/>
+    <path d="M148 300 Q256 150 364 300" fill="none" stroke="#F8FAFC" stroke-width="16" stroke-linecap="round"/>
+    <circle cx="148" cy="300" r="20" fill="#F8FAFC"/>
+    <circle cx="364" cy="300" r="20" fill="#F8FAFC"/>
+  </g>
+  <g font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif">
+    <text x="640" y="290" font-size="112" font-weight="700" fill="#F8FAFC">jog-bridge</text>
+    <text x="646" y="356" font-size="40" fill="#CBD5E1">USB-to-MIDI bridge for</text>
+    <text x="646" y="408" font-size="40" fill="#CBD5E1">DJ controllers on macOS</text>
+    <text x="646" y="490" font-size="28" fill="#22D3EE">Hercules DJ Control MP3 e2  ·  CoreMIDI</text>
+  </g>
+</svg>

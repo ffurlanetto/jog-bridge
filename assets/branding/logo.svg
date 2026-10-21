@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="t">
+  <title id="t">jog-bridge</title>
+  <rect width="512" height="512" rx="112" fill="#0B1220"/>
+  <!-- Plateau de jog wheel -->
+  <circle cx="256" cy="256" r="176" fill="#111C33" stroke="#22D3EE" stroke-width="12"/>
+  <circle cx="256" cy="256" r="146" fill="none" stroke="#22D3EE" stroke-opacity=".25" stroke-width="3"/>
+  <circle cx="256" cy="256" r="118" fill="none" stroke="#22D3EE" stroke-opacity=".18" stroke-width="3"/>
+  <!-- Repère de position du plateau -->
+  <line x1="256" y1="84" x2="256" y2="116" stroke="#F472B6" stroke-width="14" stroke-linecap="round" transform="rotate(-35 256 256)"/>
+  <!-- Pont : USB d'un côté, MIDI de l'autre -->
+  <path d="M148 300 Q256 150 364 300" fill="none" stroke="#F8FAFC" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="148" cy="300" r="20" fill="#F8FAFC"/>
+  <circle cx="364" cy="300" r="20" fill="#F8FAFC"/>
+</svg>

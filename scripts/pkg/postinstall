@@ -1,0 +1,30 @@
+#!/bin/bash
+set -euo pipefail
+
+CONSOLE_USER="$(stat -f%Su /dev/console)"
+CONSOLE_UID="$(id -u "$CONSOLE_USER")"
+USER_HOME="$(dscl . -read "/Users/$CONSOLE_USER" NFSHomeDirectory | awk '{print $2}')"
+LAUNCH_AGENTS_DIR="$USER_HOME/Library/LaunchAgents"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLIST_DEST="$LAUNCH_AGENTS_DIR/local.jog-bridge.plist"
+
+mkdir -p "$LAUNCH_AGENTS_DIR"
+cp "$SCRIPT_DIR/local.jog-bridge.plist" "$PLIST_DEST"
+chown "$CONSOLE_USER" "$PLIST_DEST"
+
+# Relance propre si une version précédente tournait déjà.
+launchctl bootout "gui/$CONSOLE_UID/local.jog-bridge" >/dev/null 2>&1 || true
+
+# bootout est asynchrone : bootstrap peut échouer (erreur 5) si le service est
+# encore en cours de déchargement. On réessaie, puis on force le démarrage.
+# Un échec ici ne doit jamais faire échouer l'installation : les fichiers sont
+# déjà en place et l'agent démarrera à la prochaine ouverture de session.
+for _ in 1 2 3 4 5; do
+    if launchctl bootstrap "gui/$CONSOLE_UID" "$PLIST_DEST" >/dev/null 2>&1; then
+        break
+    fi
+    sleep 1
+done
+launchctl kickstart "gui/$CONSOLE_UID/local.jog-bridge" >/dev/null 2>&1 || true
+
+exit 0

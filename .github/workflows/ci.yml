@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer libusb et pkg-config
+        run: brew install libusb pkg-config
+
+      - name: Compiler
+        run: swift build -c release
+
+      - name: Vérifier l'absence de dépendance dynamique à libusb
+        run: |
+          if otool -L .build/release/jog-bridge | grep -qi libusb; then
+            echo "Le binaire dépend dynamiquement de libusb" >&2
+            exit 1
+          fi
+
+      - name: Smoke test
+        run: .build/release/jog-bridge --help
