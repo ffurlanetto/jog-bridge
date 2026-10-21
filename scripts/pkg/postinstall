@@ -7,10 +7,20 @@ USER_HOME="$(dscl . -read "/Users/$CONSOLE_USER" NFSHomeDirectory | awk '{print 
 LAUNCH_AGENTS_DIR="$USER_HOME/Library/LaunchAgents"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLIST_DEST="$LAUNCH_AGENTS_DIR/local.jog-bridge.plist"
+APP="/Applications/Jog Bridge.app"
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 
 mkdir -p "$LAUNCH_AGENTS_DIR"
 cp "$SCRIPT_DIR/local.jog-bridge.plist" "$PLIST_DEST"
 chown "$CONSOLE_USER" "$PLIST_DEST"
+
+# Early builds installed a loose binary here; the app bundle replaces it.
+rm -f /usr/local/bin/jog-bridge
+
+# The agent is tied to the app bundle (AssociatedBundleIdentifiers): Launch Services must know
+# the app for System Settings to show its name and icon. /Applications is scanned anyway; this
+# makes it effective immediately. Best effort, in the user's session.
+launchctl asuser "$CONSOLE_UID" "$LSREGISTER" -f "$APP" >/dev/null 2>&1 || true
 
 # Clean restart if a previous version was already running.
 launchctl bootout "gui/$CONSOLE_UID/local.jog-bridge" >/dev/null 2>&1 || true

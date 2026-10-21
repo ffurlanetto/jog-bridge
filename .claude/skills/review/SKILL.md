@@ -67,6 +67,7 @@ Adapt verifications to the language and stack defined in Part B of AGENTS.md.
 - [ ] `postinstall` never fails the installation because of `launchctl` (ADR 0006)
 - [ ] Paths quoted (usernames and homes may contain spaces)
 - [ ] Label / paths renamed consistently everywhere (`local.jog-bridge`)
+- [ ] App bundle: bundle identifier identical in `build-pkg.sh` and the plist's `AssociatedBundleIdentifiers`; plist program path points inside the bundle (ADR 0011)
 - [ ] libusb still statically linked (`make audit`)
 
 ## Grid — Documentation

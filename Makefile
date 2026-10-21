@@ -65,6 +65,10 @@ dev: ## Run the daemon locally with traffic printed (console plugged in)
 pkg: ## Build the .pkg (VERSION=x.y.z)
 	./scripts/build-pkg.sh $(VERSION)
 
+.PHONY: icon
+icon: ## Regenerate assets/branding/AppIcon.icns from the logo
+	./scripts/make-icon.sh
+
 .PHONY: clean
 clean: ## Remove build artefacts
 	rm -rf .build dist

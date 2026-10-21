@@ -11,6 +11,7 @@ labels: hardware
 ## USB identification
 
 ```
+# the installed executable is /Applications/Jog Bridge.app/Contents/MacOS/jog-bridge
 jog-bridge --list
 ```
 

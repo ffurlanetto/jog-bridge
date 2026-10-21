@@ -1,6 +1,6 @@
 # 0006. LaunchAgent and unsigned `.pkg` installer
 
-- Status: Accepted
+- Status: Accepted (install layout superseded by [ADR 0011](0011-app-bundle-for-the-launch-agent.md))
 - Date: 2026-10-21
 
 ## Context
@@ -14,7 +14,7 @@ account and no Developer ID certificate.
 - The daemon is a user **LaunchAgent** (`local.jog-bridge`, `RunAtLoad`, `KeepAlive`,
   `ProcessType Interactive`), not a system daemon: it runs in the user's session, with their
   rights. The virtual MIDI ports are those of that session.
-- Distribution is a `.pkg` built by `scripts/build-pkg.sh`: binary in `/usr/local/bin`, plist
+- Distribution is a `.pkg` built by `scripts/build-pkg.sh`: app bundle in `/Applications`, plist
   copied to `~/Library/LaunchAgents` by a `postinstall` script.
 - The `.pkg` is **neither signed nor notarised**; the README explains how to get around
   Gatekeeper.
