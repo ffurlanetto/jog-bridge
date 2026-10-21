@@ -23,7 +23,7 @@ place.
 - The executable is installed **inside an app bundle**,
   `/Applications/Jog Bridge.app`, built by `scripts/build-pkg.sh`:
   `Contents/MacOS/jog-bridge`, an `Info.plist` (identifier `io.github.ffurlanetto.jog-bridge`,
-  display name "Jog Bridge", `LSBackgroundOnly`), and `Contents/Resources/AppIcon.icns`
+  display name "Jog Bridge"), and `Contents/Resources/AppIcon.icns`
   generated from the logo (`make icon`, the `.icns` is committed). The bundle is ad-hoc signed.
 - The LaunchAgent plist runs the bundle's executable and lists the bundle identifier in
   `AssociatedBundleIdentifiers`.
@@ -35,8 +35,8 @@ place.
 - The app component is **not relocatable** and not version-checked (`pkgbuild` component plist),
   so the installer always installs it in `/Applications`, never over another copy of the bundle
   found elsewhere on the disk (a build folder, for instance).
-- The bundle is `LSBackgroundOnly`: no Dock icon, no window. Double-clicking it starts a second
-  instance that cannot claim the USB interface held by the agent and stays idle — harmless.
+- Clicking the app opens a status panel, a separate executable in the same bundle
+  ([ADR 0012](0012-status-panel-in-the-bundle.md)); the daemon is only started by launchd.
 
 ## Consequences
 

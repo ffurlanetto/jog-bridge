@@ -34,6 +34,9 @@ make build                           # or: swift build -c release
 .build/release/jog-bridge --dump     # USB and MIDI traffic
 ```
 
+`make panel` runs the status panel from the build folder (it inspects the *installed* agent, so
+it shows the real state of this Mac).
+
 The project also opens in Xcode (*File → Open…* on the folder or on `Package.swift`).
 
 If the installed agent is running, it already holds the console: stop it before running a
@@ -59,8 +62,9 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.jog-bridge.plist
 swift test
 ```
 
-63 tests (Swift Testing), no hardware needed: unit, integration (real CoreMIDI and libusb) and
-non-regression (reference sessions, MIDI contract, djay mapping). Strategy, organisation and
+109 tests (Swift Testing), no hardware needed: unit, integration (real CoreMIDI and libusb) and
+non-regression (reference sessions, MIDI contract, djay mapping) for the daemon, plus the status
+panel's logic, probes and its contract with the daemon. Strategy, organisation and
 rules for the reference files: [testing.md](testing.md).
 
 ## Building the .pkg

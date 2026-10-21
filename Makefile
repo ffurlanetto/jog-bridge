@@ -65,6 +65,10 @@ dev: ## Run the daemon locally with traffic printed (console plugged in)
 pkg: ## Build the .pkg (VERSION=x.y.z)
 	./scripts/build-pkg.sh $(VERSION)
 
+.PHONY: panel
+panel: ## Run the status panel from the build folder (it inspects the installed agent)
+	swift run jog-bridge-panel
+
 .PHONY: icon
 icon: ## Regenerate assets/branding/AppIcon.icns from the logo
 	./scripts/make-icon.sh

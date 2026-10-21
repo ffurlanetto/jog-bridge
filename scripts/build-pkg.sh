@@ -1,9 +1,11 @@
 #!/bin/bash
-# Builds a self-contained .pkg: an app bundle (binary statically linked to libusb, name and
-# icon) + LaunchAgent, installed and started automatically by the postinstall script.
+# Builds a self-contained .pkg: an app bundle + LaunchAgent, installed and started automatically
+# by the postinstall script.
 #
-# The binary lives inside a bundle so that System Settings → Login Items shows a proper name
-# and icon (ADR 0011); there is no loose binary in /usr/local/bin.
+# The bundle holds two executables (ADR 0012): the status panel (jog-bridge-panel, the bundle's
+# main executable, opened when the user clicks the app) and the daemon (jog-bridge, statically
+# linked to libusb, run by the LaunchAgent). It also gives System Settings → Login Items a proper
+# name and icon (ADR 0011); there is no loose binary in /usr/local/bin.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -26,7 +28,8 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources" "$SCRIPTS_DIR" "$OUT_DIR"
 
 cp .build/release/jog-bridge "$APP_DIR/Contents/MacOS/jog-bridge"
-chmod 755 "$APP_DIR/Contents/MacOS/jog-bridge"
+cp .build/release/jog-bridge-panel "$APP_DIR/Contents/MacOS/jog-bridge-panel"
+chmod 755 "$APP_DIR/Contents/MacOS/jog-bridge" "$APP_DIR/Contents/MacOS/jog-bridge-panel"
 cp assets/branding/AppIcon.icns "$APP_DIR/Contents/Resources/AppIcon.icns"
 
 cat > "$APP_DIR/Contents/Info.plist" <<PLIST
@@ -40,8 +43,9 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
     <string>$APP_NAME</string>
     <key>CFBundleDisplayName</key>
     <string>$APP_NAME</string>
+    <!-- The panel is the main executable; the daemon is started by launchd, not by a click. -->
     <key>CFBundleExecutable</key>
-    <string>jog-bridge</string>
+    <string>jog-bridge-panel</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundlePackageType</key>
@@ -51,17 +55,20 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
     <key>CFBundleVersion</key>
     <string>$VERSION</string>
     <key>LSMinimumSystemVersion</key>
-    <string>12.0</string>
-    <!-- Background-only: no Dock icon, no menu bar, nothing to double-click. -->
-    <key>LSBackgroundOnly</key>
+    <string>13.0</string>
+    <key>NSHighResolutionCapable</key>
     <true/>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.music</string>
 </dict>
 </plist>
 PLIST
 plutil -lint "$APP_DIR/Contents/Info.plist" >/dev/null
 
-# Ad-hoc signature: seals the Info.plist and the icon together with the binary. It carries no
-# Team ID (there is no Developer ID, ADR 0006), so this is integrity, not identity.
+# Ad-hoc signatures: each executable, then the bundle (sealing the Info.plist and the icon). They
+# carry no Team ID (there is no Developer ID, ADR 0006), so this is integrity, not identity.
+codesign --force --sign - "$APP_DIR/Contents/MacOS/jog-bridge"
+codesign --force --sign - "$APP_DIR/Contents/MacOS/jog-bridge-panel"
 codesign --force --sign - "$APP_DIR"
 
 cp scripts/pkg/postinstall "$SCRIPTS_DIR/postinstall"

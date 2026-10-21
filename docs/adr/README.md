@@ -17,6 +17,7 @@ changes, a new ADR is added that replaces the old one (status "Superseded by"). 
 | [0009](0009-guardrails-enforced-outside-the-model.md) | Guardrails enforced outside the model: secrets and tests | Accepted |
 | [0010](0010-delivery-flow.md) | Delivery flow: branch, draft, wait for CI | Accepted |
 | [0011](0011-app-bundle-for-the-launch-agent.md) | App bundle for the LaunchAgent: name, icon, no loose binary | Accepted |
+| [0012](0012-status-panel-in-the-bundle.md) | Status panel as a second executable in the app bundle | Accepted |
 
-> ADRs 0002 to 0011 were written after the fact from the code and the project history. Their
+> ADRs 0002 to 0012 were written after the fact from the code and the project history. Their
 > context and consequences are reconstructed; correct them if an original motivation differs.

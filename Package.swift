@@ -34,7 +34,9 @@ let libusbCFlags = shell("pkg-config --cflags libusb-1.0")
 
 let package = Package(
     name: "jog-bridge",
-    platforms: [.macOS(.v12)],
+    // macOS 13: Login Items & Extensions, SMAppService and the SwiftUI `Window` scene used by the
+    // status panel all start there (ADR 0012).
+    platforms: [.macOS(.v13)],
     targets: [
         // libusb via Homebrew : `brew install libusb pkg-config`
         .systemLibrary(
@@ -56,6 +58,23 @@ let package = Package(
                 .linkedFramework("CoreFoundation"),
                 .linkedFramework("Security"),
             ]
+        ),
+        // Status panel: the SwiftUI app that opens when the user clicks Jog Bridge in /Applications.
+        // It is the bundle's main executable; the daemon above is a second executable in the same
+        // bundle (ADR 0012). It never links libusb.
+        .executableTarget(
+            name: "jog-bridge-panel",
+            path: "Sources/jog-bridge-panel",
+            linkerSettings: [
+                .linkedFramework("CoreMIDI"),
+                .linkedFramework("IOKit"),
+                .linkedFramework("ServiceManagement"),
+            ]
+        ),
+        .testTarget(
+            name: "jog-bridge-panelTests",
+            dependencies: ["jog-bridge-panel"],
+            path: "Tests/jog-bridge-panelTests"
         ),
         // The tests import the executable with `@testable import jog_bridge`: the CLibUSB
         // C module therefore needs the same headers as the main target.
