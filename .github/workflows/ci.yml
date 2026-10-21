@@ -76,6 +76,7 @@ jobs:
           app="Applications/Jog Bridge.app"
           payload="$(pkgutil --payload-files "$pkg")"
           echo "$payload" | grep -qF "./$app/Contents/MacOS/jog-bridge"
+          echo "$payload" | grep -qF "./$app/Contents/MacOS/jog-bridge-panel"
           echo "$payload" | grep -qF "./$app/Contents/Info.plist"
           echo "$payload" | grep -qF "./$app/Contents/Resources/AppIcon.icns"
           # No loose binary: the executable lives in the bundle only (ADR 0011).
@@ -86,13 +87,20 @@ jobs:
           pkgutil --expand-full "dist/jog-bridge-$VERSION.pkg" "$RUNNER_TEMP/pkg-full"
           app="$RUNNER_TEMP/pkg-full/Payload/Applications/Jog Bridge.app"
           bin="$app/Contents/MacOS/jog-bridge"
-          test -x "$bin"
-          if otool -L "$bin" | grep -qi libusb; then
-            echo "The .pkg binary depends dynamically on libusb" >&2
-            exit 1
-          fi
+          panel="$app/Contents/MacOS/jog-bridge-panel"
+          test -x "$bin" && test -x "$panel"
+          # The daemon links libusb statically; the panel never uses it.
+          for exe in "$bin" "$panel"; do
+            if otool -L "$exe" | grep -qi libusb; then
+              echo "$exe depends dynamically on libusb" >&2
+              exit 1
+            fi
+            codesign --verify --strict "$exe"
+          done
           "$bin" --help > /dev/null
           codesign --verify --deep --strict "$app"
+          # Clicking the app must open the panel, not start a second daemon (ADR 0012).
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")" = "jog-bridge-panel"
           # The bundle id, the plist's AssociatedBundleIdentifiers and its program path must agree.
           plist="$RUNNER_TEMP/pkg-full/Scripts/local.jog-bridge.plist"
           bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")"

@@ -204,8 +204,8 @@ types). No third-party logo or image. See [docs/branding.md](docs/branding.md) a
 
 ```
 Language   : Swift 5.9 (tools 5.9, built with Swift 6.x), SwiftPM
-Platform   : macOS 12+ (Apple Silicon tested)
-Frameworks : CoreMIDI, IOKit, CoreFoundation
+Platform   : macOS 13+ (Apple Silicon tested)
+Frameworks : CoreMIDI, IOKit, CoreFoundation; SwiftUI + ServiceManagement (status panel)
 Native     : libusb 1.0 (Homebrew, statically linked)
 Tests      : Swift Testing (`swift test`)
 CI/CD      : GitHub Actions (macos-15)
@@ -237,6 +237,7 @@ make audit        # libusb statically linked
 make check        # lint + typecheck + test + build + audit — the quality gate
 make test-hooks   # proves the guardrails (.claude/hooks) fire
 make dev          # daemon locally with --dump (console plugged in)
+make panel        # run the status panel from the build folder
 make pkg VERSION=1.0.0   # dist/jog-bridge-1.0.0.pkg
 make icon         # regenerate assets/branding/AppIcon.icns from the logo
 ```
@@ -257,8 +258,10 @@ installed copy the executable is inside the bundle (see the README); stop the ag
 | `Sources/jog-bridge/LEDs.swift` | MIDI note → LED bit, state of the 5 blocks of 16 bits |
 | `Sources/jog-bridge/MIDIStreamParser.swift` | Splitting a MIDI byte stream into messages (app → console) |
 | `Sources/jog-bridge/VirtualMIDIPorts.swift` | Virtual CoreMIDI source and destination |
+| `Sources/jog-bridge-panel/` | Status panel (SwiftUI): `BridgeStatus` (pure logic), `Probes`, `Actions`, `StatusView` |
 | `Sources/CLibUSB/` | System module (`shim.h`, `module.modulemap`) for libusb |
-| `Tests/jog-bridgeTests/` | Unit, integration, non-regression; `Fixtures/` = reference sessions |
+| `Tests/jog-bridgeTests/` | Daemon: unit, integration, non-regression; `Fixtures/` = reference sessions |
+| `Tests/jog-bridge-panelTests/` | Panel: parsing, evaluation matrix, probes, actions, contract with the daemon's log |
 | `scripts/` | `build-pkg.sh` (app bundle + .pkg), `pkg/postinstall`, `test-hooks.sh`, `make-icon.sh`, `render-svg.swift` |
 | `local.jog-bridge.plist` | LaunchAgent (runs the bundle's executable, `AssociatedBundleIdentifiers`) |
 | `docs/` | Architecture, protocol, mapping, tests, branding, ADRs |
@@ -290,6 +293,12 @@ installed copy the executable is inside the bundle (see the README); stop the ag
   `/usr/local/bin`. The bundle identifier (`io.github.ffurlanetto.jog-bridge`) must match in
   `scripts/build-pkg.sh` and `local.jog-bridge.plist`, and the plist's program path must point
   inside the bundle. [ADR 0011](docs/adr/0011-app-bundle-for-the-launch-agent.md)
+- **The panel reads the daemon's log** to tell why the console is not connected. The lines it
+  relies on are listed in `DaemonLogMarkers`; a contract test fails if the daemon stops logging
+  one of them. Reword a daemon log message only together with that list.
+  [ADR 0012](docs/adr/0012-status-panel-in-the-bundle.md)
+- **The bundle has two executables**: `jog-bridge-panel` is the main one (`CFBundleExecutable`, opened
+  by a click), `jog-bridge` is the daemon run by launchd. Do not make the daemon the main one.
 - `dist/` and `.build/` are never committed.
 
 **Without an explicit request, do not:** install the `.pkg`, load or unload the LaunchAgent

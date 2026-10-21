@@ -5,7 +5,7 @@
 <p align="center">
   <a href="https://github.com/ffurlanetto/jog-bridge/actions/workflows/ci.yml"><img src="https://github.com/ffurlanetto/jog-bridge/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-blue" alt="MIT licence"></a>
-  <img src="https://img.shields.io/badge/macOS-12%2B-lightgrey" alt="macOS 12+">
+  <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13+">
   <img src="https://img.shields.io/badge/Swift-5.9-orange" alt="Swift 5.9">
 </p>
 
@@ -35,6 +35,8 @@ No kernel extension, no DriverKit, no administrator rights at runtime.
 - LEDs driven from the DJ application (steady and blinking).
 - Automatic reconnection when the console is plugged or unplugged.
 - Automatic start at login (LaunchAgent).
+- A status panel: click **Jog Bridge** in `/Applications` to see at a glance whether the bridge
+  is running, and get help when it is not.
 - Self-contained binary: libusb is statically linked.
 - Ready-made djay mapping: [`Hercules MP3 e2.djayMidiMapping`](Hercules%20MP3%20e2.djayMidiMapping).
 
@@ -45,7 +47,7 @@ xcode-select --install          # Swift build tools
 brew install libusb pkg-config
 ```
 
-macOS 12 or later. Homebrew is only needed on the machine that builds.
+macOS 13 or later. Homebrew is only needed on the machine that builds.
 
 > If an old Hercules driver was installed on this Mac, uninstall it: it takes over the USB
 > interface and the bridge will not be able to claim it.
@@ -163,6 +165,24 @@ sudo pkgutil --forget local.jog-bridge
 (An early build also installed `/usr/local/bin/jog-bridge`; the installer removes it, and you can
 delete it by hand if you installed that build and never upgraded.)
 
+## The status panel
+
+Open **Jog Bridge** from `/Applications` (Spotlight or the Finder). A small window shows whether
+everything is working:
+
+- 🟢 **Jog Bridge is running** — the service is up, allowed in the background, the MIDI ports are
+  published and the console is connected.
+- 🟠 **Attention** — for example *Waiting for the console* (plug it in), or *Another app is using
+  the console* (close other DJ software or an old Hercules driver).
+- 🔴 **Problem** — the service is stopped, not loaded, or not allowed in *Login Items &
+  Extensions*. The panel offers the matching button: **Start**, **Restart** or **Open Login Items
+  Settings**.
+
+Under *Details*, **Show Log** opens `/tmp/jog-bridge.log` and **Copy Diagnostics** puts a report
+on the clipboard, ready to paste into an issue. Closing the window quits the panel only; the
+bridge keeps running in the background. See
+[ADR 0012](docs/adr/0012-status-panel-in-the-bundle.md).
+
 ## 5. In the DJ software
 
 Select the "Hercules MP3 e2" controller (input and output) in the MIDI settings, then either use
@@ -187,7 +207,8 @@ the mapping is kept from one session to the next. The full table of notes and CC
 - **"Cannot claim interface"**: a Hercules driver is still installed, or another application
   (Mixxx) already holds the console. Close it.
 - **Nothing in `--dump`**: check the endpoint with `--list`, try `--in 0x81`.
-- **The agent does not start after installation**: see the background permission above.
+- **The agent does not start after installation**: open **Jog Bridge** — the panel says why and
+  offers the fix; see also the background permission above.
 
 More details in [docs/troubleshooting.md](docs/troubleshooting.md).
 

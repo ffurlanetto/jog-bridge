@@ -2,6 +2,11 @@
 
 ## Quick diagnosis
 
+**Open Jog Bridge from `/Applications`.** The status panel checks the service, the background
+permission, the MIDI ports and the console, tells you what is wrong and offers the fix (start,
+restart, open Login Items settings). *Details → Copy Diagnostics* gives a report to paste into an
+issue. The rest of this page is the manual version of the same checks.
+
 The installed executable lives inside the app bundle (see the README, "Running the installed
 binary"):
 

@@ -4,8 +4,9 @@
 swift test
 ```
 
-No hardware is needed. The suite uses Swift Testing; the `jog-bridgeTests` target imports the
-executable with `@testable import jog_bridge`.
+No hardware is needed. The suite uses Swift Testing. Two test targets, one per executable, each
+importing it with `@testable import`: `jog-bridgeTests` (the daemon, `jog_bridge`) and
+`jog-bridge-panelTests` (the status panel, `jog_bridge_panel`).
 
 ## Organisation
 
@@ -15,6 +16,17 @@ executable with `@testable import jog_bridge`.
 | Integration | `CoreMIDIIntegrationTests` | Real virtual CoreMIDI ports: daemon → application, application → daemon, whole LED chain, recorded frames → MIDI received by a client, fixed identifiers and "Hercules" manufacturer; libusb link with no hardware |
 | Non-regression | `GoldenReplayTests`, `ContractTests`, `DjayMappingTests` | Reference sessions replayed, documented note numbers, consistency of the djay mapping with what the daemon emits |
 
+### Status panel (`jog-bridge-panelTests`)
+
+| Type | Files | What is checked |
+|---|---|---|
+| Unit | `LaunchdParsingTests`, `LogAnalysisTests`, `StatusEvaluationTests`, `DiagnosticsTests`, `ActionsTests` | Parsing `launchctl print`, reading the daemon's log (latest run wins; a claim failure is not hidden by the "Waiting" line after it), the level for every combination of service × permission × MIDI × USB × log (exhaustive: "OK" only when everything is fine), the diagnostics report, the `launchctl` commands the actions issue (recorded, never executed) |
+| Integration | `ProbesIntegrationTests` | The CoreMIDI probe sees a virtual source by name, the USB probe reports absence, the process runner, the log tail |
+| Contract | `DaemonContractTests` | Every log line the panel relies on still exists in the daemon's sources; the port name, USB IDs and agent label agree with the daemon and the plist |
+
+The SwiftUI view itself is not tested automatically: check it by hand (`make panel`, or the
+installed app).
+
 ## What is not tested
 
 - **Real USB**: reading the endpoint, the initialisation sequence, the LED control transfers.
@@ -22,6 +34,7 @@ executable with `@testable import jog_bridge`.
 - **The `.pkg` and the LaunchAgent**: CI builds the package and checks its contents, but
   `postinstall` is not executed (it writes into the user's folder and calls `launchctl`).
 - **Options that exit the process** (`--help`, unknown option): `Config.parse` calls `exit`.
+- **The panel's window and its buttons** (the real `launchctl bootstrap`, System Settings opening).
 
 ## CoreMIDI integration tests
 
