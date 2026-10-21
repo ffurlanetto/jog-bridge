@@ -1,12 +1,12 @@
 changelog:
   categories:
-    - title: Nouveautés
+    - title: Features
       labels: [enhancement]
-    - title: Corrections
+    - title: Fixes
       labels: [bug]
-    - title: Nouveau matériel
+    - title: New hardware
       labels: [hardware]
     - title: Documentation
       labels: [documentation]
-    - title: Autres changements
+    - title: Other changes
       labels: ["*"]

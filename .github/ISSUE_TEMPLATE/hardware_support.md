@@ -1,14 +1,14 @@
 ---
-name: Nouveau matériel
-about: Demander ou documenter le support d'un autre modèle Hercules
+name: New hardware
+about: Request or document support for another Hercules model
 labels: hardware
 ---
 
-## Modèle
+## Model
 
-<!-- Ex. DJ Control MP3 LE, Glow… -->
+<!-- E.g. DJ Control MP3 LE, Glow… -->
 
-## Identification USB
+## USB identification
 
 ```
 jog-bridge --list
@@ -16,4 +16,4 @@ jog-bridge --list
 
 ## Observations
 
-<!-- Sortie de `jog-bridge --pid <hex> --dump` en bougeant les contrôles un par un. -->
+<!-- Output of `jog-bridge --pid <hex> --dump` while moving the controls one at a time. -->

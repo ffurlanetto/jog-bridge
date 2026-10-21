@@ -1,72 +1,71 @@
 # Architecture
 
-`jog-bridge` est un exécutable unique. Il fait le pont entre l'USB propriétaire de la
-console et CoreMIDI.
+`jog-bridge` is a single executable. It bridges the console's proprietary USB protocol and CoreMIDI.
 
 ```
-                 ┌──────────────────────── jog-bridge ────────────────────────┐
+                 ┌──────────────────────── jog-bridge ─────────────────────────────┐
                  │                                                                  │
- Console  ──USB──►  HerculesDevice ──trame 38 o──► HerculesFrameDecoder ──MIDI──►  VirtualMIDIPorts ──► App DJ
- (06F8:B105)     │  (libusb, thread       │                                         │   (source virtuelle)
+ Console  ──USB──►  HerculesDevice ──38-byte frame──► HerculesFrameDecoder ──MIDI──►  VirtualMIDIPorts ──► DJ app
+ (06F8:B105)     │  (libusb, thread       │                                         │   (virtual source)
                  │   hercules-usb-reader) │                                         │
-                 │                        ◄── setLEDs ◄── HerculesLEDs ◄── MIDIStreamParser ◄── (destination virtuelle) ◄── App DJ
+                 │                        ◄── setLEDs ◄── HerculesLEDs ◄── MIDIStreamParser ◄── (virtual destination) ◄── DJ app
                  └──────────────────────────────────────────────────────────────────┘
 ```
 
-## Composants
+## Components
 
-| Composant | Fichier | Responsabilité |
+| Component | File | Responsibility |
 |---|---|---|
-| Assemblage | `main.swift` | Lit la config, crée l'appareil et les ports, installe la gestion de SIGINT/SIGTERM, lance le thread de lecture, puis `dispatchMain()`. |
-| Configuration | `Config.swift` | Options CLI, erreurs (`BridgeError`), `log()` sur stderr, `hex()`. |
-| Appareil USB | `HerculesDevice.swift` | Ouvre la console (VID/PID), réclame l'interface, détecte l'endpoint IN, joue la séquence d'initialisation, lit en boucle, se reconnecte, envoie les LEDs. |
-| Décodeur de trames | `FrameDecoder.swift` | Compare chaque trame de 38 octets à la précédente et n'émet que les changements, en notes et CC. |
-| LEDs | `LEDs.swift` | Traduit une note MIDI (canal 1 ou 2) en bit dans 5 blocs de 16 bits. |
-| Analyseur MIDI | `MIDIStreamParser.swift` | Reconstitue des messages MIDI complets à partir des octets reçus de l'application (running status, SysEx, temps réel). |
-| Ports MIDI | `VirtualMIDIPorts.swift` | Crée une source et une destination CoreMIDI virtuelles à identifiants fixes. |
-| LaunchAgent | `local.jog-bridge.plist` | Démarre et maintient le processus en session utilisateur. |
+| Wiring | `main.swift` | Reads the config, creates the device and the ports, installs SIGINT/SIGTERM handling, starts the reader thread, then `dispatchMain()`. |
+| Configuration | `Config.swift` | CLI options, errors (`BridgeError`), `log()` on stderr, `hex()`. |
+| USB device | `HerculesDevice.swift` | Opens the console (VID/PID), claims the interface, detects the IN endpoint, plays the initialisation sequence, reads in a loop, reconnects, sends the LEDs. |
+| Frame decoder | `FrameDecoder.swift` | Compares each 38-byte frame with the previous one and only emits what changed, as notes and CCs. |
+| LEDs | `LEDs.swift` | Translates a MIDI note (channel 1 or 2) into a bit in 5 blocks of 16 bits. |
+| MIDI parser | `MIDIStreamParser.swift` | Rebuilds complete MIDI messages from the bytes received from the application (running status, SysEx, real-time). |
+| MIDI ports | `VirtualMIDIPorts.swift` | Creates a virtual CoreMIDI source and destination with fixed identifiers. |
+| LaunchAgent | `local.jog-bridge.plist` | Starts and keeps the process alive in the user session. |
 
-## Flux console → application
+## Console → application flow
 
-1. `HerculesDevice.run` lit en boucle l'endpoint IN (timeout de 200 ms).
-2. Chaque transfert de 38 octets est passé à `HerculesFrameDecoder.decode`. La première
-   trame fixe l'état initial et n'émet rien. Les autres produisent des notes (boutons) et
-   des CC (analogiques) pour les octets qui ont changé.
-3. `VirtualMIDIPorts.send` publie chaque message avec `MIDIReceived` sur la source virtuelle.
+1. `HerculesDevice.run` reads the IN endpoint in a loop (200 ms timeout).
+2. Each 38-byte transfer is passed to `HerculesFrameDecoder.decode`. The first frame sets the
+   initial state and emits nothing. The following ones produce notes (buttons) and CCs
+   (analog controls) for the bytes that changed.
+3. `VirtualMIDIPorts.send` publishes each message with `MIDIReceived` on the virtual source.
 
-## Flux application → console (LEDs)
+## Application → console flow (LEDs)
 
-1. L'application écrit sur la destination virtuelle ; CoreMIDI appelle le bloc de
-   `MIDIDestinationCreateWithBlock` sur son propre thread.
-2. `MIDIStreamParser` découpe les octets en messages ; `HerculesLEDs.apply` met à jour
-   les blocs si la note correspond à une LED.
-3. Si un bloc a changé, `HerculesDevice.setLEDs` envoie les 5 blocs par transferts de
-   contrôle ([protocole](usb-protocol.md)). À la reconnexion, l'état mémorisé est renvoyé.
+1. The application writes to the virtual destination; CoreMIDI calls the
+   `MIDIDestinationCreateWithBlock` block on its own thread.
+2. `MIDIStreamParser` splits the bytes into messages; `HerculesLEDs.apply` updates the blocks
+   if the note matches a LED.
+3. If a block changed, `HerculesDevice.setLEDs` sends the 5 blocks as control transfers
+   ([protocol](usb-protocol.md)). After a reconnection, the remembered state is sent again.
 
-## Concurrence
+## Concurrency
 
-| Contexte | Rôle | État touché |
+| Context | Role | State touched |
 |---|---|---|
-| Thread principal (`dispatchMain`) | Signaux SIGINT/SIGTERM : ferme l'USB puis `exit(0)`. | — |
-| `hercules-usb-reader` | Boucle de lecture USB, décodeur, envoi MIDI. | `decoder` (local au thread) |
-| Thread CoreMIDI | Réception des messages de l'application. | `leds`, `ledParser` (globaux de `main.swift`, uniquement ici) |
+| Main thread (`dispatchMain`) | SIGINT/SIGTERM signals: closes USB, then `exit(0)`. | — |
+| `hercules-usb-reader` | USB read loop, decoder, MIDI output. | `decoder` (local to the thread) |
+| CoreMIDI thread | Receiving messages from the application. | `leds`, `ledParser` (globals in `main.swift`, only here) |
 
-`HerculesDevice` protège `handle`, `endpoints` et `ledBlocks` par un `NSLock` : le thread
-USB ouvre et ferme la connexion pendant que le thread CoreMIDI écrit les LEDs.
+`HerculesDevice` protects `handle`, `endpoints` and `ledBlocks` with an `NSLock`: the USB thread
+opens and closes the connection while the CoreMIDI thread writes the LEDs.
 
-## Cycle de vie et reconnexion
+## Lifecycle and reconnection
 
-`HerculesDevice.init` ne fait qu'initialiser libusb : l'absence de la console n'est pas
-une erreur. La boucle `run` réessaie `open()` toutes les 2 s (« En attente de la console… »)
-et repasse en attente si une lecture échoue (« Console déconnectée »). Le processus reste
-donc vivant sans la console ; le `KeepAlive` du LaunchAgent ne sert qu'en cas de crash.
+`HerculesDevice.init` only initialises libusb: the console being absent is not an error. The
+`run` loop retries `open()` every 2 s ("Waiting for the console…") and goes back to waiting if a
+read fails ("Console disconnected"). The process therefore stays alive without the console;
+the LaunchAgent's `KeepAlive` only matters after a crash.
 
-Seules deux erreurs sont fatales au démarrage (`exit(1)`) : l'échec de `libusb_init` et
-l'échec de création des ports CoreMIDI.
+Only two errors are fatal at startup (`exit(1)`): `libusb_init` failing, and the CoreMIDI ports
+failing to be created.
 
 ## Distribution
 
-`scripts/build-pkg.sh` compile en release, assemble l'arborescence
-(`/usr/local/bin/jog-bridge`) et appelle `pkgbuild` avec `scripts/pkg/postinstall`.
-Le script copie le plist dans le dossier `LaunchAgents` de l'utilisateur connecté (déterminé
-via `/dev/console`) puis charge l'agent. Voir [ADR 0006](adr/0006-launchagent-et-pkg-non-signe.md).
+`scripts/build-pkg.sh` builds in release, assembles the tree (`/usr/local/bin/jog-bridge`) and
+calls `pkgbuild` with `scripts/pkg/postinstall`. That script copies the plist into the logged-in
+user's `LaunchAgents` folder (found through `/dev/console`) and then loads the agent. See
+[ADR 0006](adr/0006-launchagent-and-unsigned-pkg.md).

@@ -1,38 +1,36 @@
 # jog-bridge vX.Y.Z
 
-<!-- Une phrase : ce que cette version apporte. -->
+<!-- One sentence: what this version brings. -->
 
-## Nouveautés
+## What's new
 
 - 
 
-## Corrections
+## Fixes
 
 - 
 
 ## Installation
 
-1. Téléchargez `jog-bridge-X.Y.Z.pkg` ci-dessous.
-2. **Ce paquet n'est pas signé ni notarisé.** macOS le bloquera au premier double-clic :
-   clic droit → *Ouvrir*, ou *Réglages Système → Confidentialité et sécurité → Ouvrir
-   quand même*.
-3. Après l'installation, vérifiez que l'élément `jog-bridge` est activé dans *Réglages
-   Système → Général → Ouverture et extensions → Autoriser en arrière-plan*. Sans cela,
-   l'agent ne démarre pas.
-4. Branchez la console : le port MIDI « Hercules MP3 e2 » apparaît dans votre logiciel DJ.
+1. Download `jog-bridge-X.Y.Z.pkg` below.
+2. **This package is neither signed nor notarised.** macOS will block it on first double-click:
+   right-click → *Open*, or *System Settings → Privacy & Security → Open Anyway*.
+3. After installing, check that the `jog-bridge` item is enabled in *System Settings → General →
+   Login Items & Extensions → Allow in the Background*. Without it, the agent does not start.
+4. Plug in the console: the "Hercules MP3 e2" MIDI port appears in your DJ software.
 
-Vérifier l'intégrité du téléchargement :
+Verify the download's integrity:
 
 ```sh
 shasum -a 256 jog-bridge-X.Y.Z.pkg
-# attendu : <SHA-256>
+# expected: <SHA-256>
 ```
 
-Vous préférez compiler vous-même ? Voir le [README](../README.md#2-compiler).
+Prefer to build it yourself? See the [README](../README.md#2-build).
 
-## Mise à jour et désinstallation
+## Updating and uninstalling
 
-Réinstaller le `.pkg` remplace le binaire et recharge l'agent. Pour désinstaller :
+Reinstalling the `.pkg` replaces the binary and reloads the agent. To uninstall:
 
 ```sh
 launchctl bootout gui/$(id -u)/local.jog-bridge
@@ -40,13 +38,13 @@ rm ~/Library/LaunchAgents/local.jog-bridge.plist
 sudo rm /usr/local/bin/jog-bridge
 ```
 
-## Matériel testé
+## Hardware tested
 
 - Hercules DJ Control MP3 e2 (`06F8:B105`)
 
 ---
 
-*jog-bridge est un projet indépendant, non affilié à Guillemot Corporation ni à Hercules, et
-ni approuvé ni sponsorisé par eux. Hercules est une marque de Guillemot Corporation.*
+*jog-bridge is an independent project, not affiliated with Guillemot Corporation or Hercules,
+and neither approved nor sponsored by them. Hercules is a trademark of Guillemot Corporation.*
 
-Changelog complet : [CHANGELOG.md](../CHANGELOG.md)
+Full changelog: [CHANGELOG.md](../CHANGELOG.md)

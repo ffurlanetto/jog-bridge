@@ -1,20 +1,20 @@
-# NNNN. Titre court de la décision
+# NNNN. Short title of the decision
 
-- Statut : Proposée | Acceptée | Remplacée par [NNNN](NNNN-titre.md) | Abandonnée
-- Date : AAAA-MM-JJ
+- Status: Proposed | Accepted | Superseded by [NNNN](NNNN-title.md) | Abandoned
+- Date: YYYY-MM-DD
 
-## Contexte
+## Context
 
-Quel problème, quelles contraintes, quelles forces en présence ?
+What problem, what constraints, what forces are at play?
 
-## Décision
+## Decision
 
-Ce que nous faisons, à l'indicatif.
+What we do, in the present tense.
 
-## Conséquences
+## Consequences
 
-Ce qui devient plus facile, plus difficile, ce qu'il faut surveiller.
+What becomes easier, what becomes harder, what to watch.
 
-## Alternatives écartées
+## Alternatives considered
 
-- Option A : pourquoi pas.
+- Option A: why not.

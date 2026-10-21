@@ -1,24 +1,22 @@
-/// Découpe un flux d'octets en messages MIDI 1.0 complets.
+/// Splits a byte stream into complete MIDI 1.0 messages.
 ///
-/// La MP3 e2 envoie déjà du MIDI brut (ex. `B3 38 38`) sur son endpoint bulk,
-/// mais un transfert USB peut contenir plusieurs messages, ou utiliser le
-/// "running status". Ce parseur reconstitue des messages propres pour CoreMIDI.
+/// A transfer can carry several messages, or use "running status". This parser
+/// rebuilds clean messages for CoreMIDI and for the LED path (application → console).
 struct MIDIStreamParser {
     private var running: UInt8 = 0
     private var pending: [UInt8] = []
     private var expected = 0
     private var sysex: [UInt8]? = nil
 
-    /// Remet l'état à zéro (appelé entre deux transferts USB : la console envoie
-    /// des messages complets, on évite ainsi qu'un octet parasite soit interprété
-    /// en running status).
+    /// Resets the state, so that a stray byte is not interpreted as running status
+    /// across two independent transfers.
     mutating func reset() {
         running = 0; pending = []; expected = 0; sysex = nil
     }
 
     mutating func feed(_ data: [UInt8], emit: ([UInt8]) -> Void) {
         for b in data {
-            // Messages temps réel : 1 octet, peuvent s'intercaler n'importe où.
+            // Real-time messages: one byte, may be interleaved anywhere.
             if b >= 0xF8 { emit([b]); continue }
 
             // SysEx en cours.
@@ -29,7 +27,7 @@ struct MIDIStreamParser {
                 } else if b < 0x80 {
                     sysex!.append(b); continue
                 }
-                sysex = nil // SysEx interrompu par un nouvel octet de statut
+                sysex = nil // SysEx interrupted by a new status byte
             }
 
             if b >= 0x80 {
@@ -41,9 +39,9 @@ struct MIDIStreamParser {
                 continue
             }
 
-            // Octet de données.
+            // Data byte.
             if pending.isEmpty {
-                guard running != 0 else { continue } // orphelin : ignoré
+                guard running != 0 else { continue } // orphan: ignored
                 pending = [running]
                 expected = Self.length(of: running)
             }

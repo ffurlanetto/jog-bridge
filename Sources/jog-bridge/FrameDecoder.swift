@@ -1,15 +1,15 @@
-/// Décode les trames d'état de 38 octets que la MP3 e2 envoie en continu et ne
-/// produit des messages MIDI que pour ce qui a changé depuis la trame précédente.
+/// Decodes the 38-byte state frames the MP3 e2 sends continuously, and produces MIDI
+/// messages only for what changed since the previous frame.
 ///
-/// Disposition observée (index d'octet) :
-///  - 0…5    : boutons, 1 bit par bouton (1 = appuyé)
-///  - 6…18   : potentiomètres, faders et encodeurs, valeur 8 bits
-///  - 20, 36 : recopies d'état liées à l'octet 3 (informatif, pas converti en MIDI)
-///  - 37     : compteur de séquence (ignoré)
+/// Observed layout (byte index):
+///  - 0…5    : buttons, one bit per button (1 = pressed)
+///  - 6…18   : knobs, faders and encoders, 8-bit value
+///  - 20, 36 : state mirrors tied to byte 3 (informational, not converted to MIDI)
+///  - 37     : sequence counter (ignored)
 ///
-/// Correspondance MIDI (canal 1), à associer ensuite par MIDI Learn :
-///  - bouton (octet n, bit b) → note n × 8 + b, vélocité 127 à l'appui, note off au relâchement
-///  - contrôle analogique (octet n) → CC n, valeur = octet >> 1 (0…127)
+/// MIDI mapping (channel 1), to be bound afterwards with MIDI Learn:
+///  - button (byte n, bit b) → note n × 8 + b, velocity 127 on press, note off on release
+///  - analog control (byte n) → CC n, value = byte >> 1 (0…127)
 struct HerculesFrameDecoder {
     static let frameLength = 38
 
@@ -34,7 +34,7 @@ struct HerculesFrameDecoder {
         var output = Output()
         guard frame.count == Self.frameLength else { return output }
         defer { previous = frame }
-        // La première trame sert d'état initial : rien n'est émis.
+        // The first frame only sets the initial state: nothing is emitted.
         guard let old = previous else { return output }
 
         for i in 0..<Self.counterByte where frame[i] != old[i] {

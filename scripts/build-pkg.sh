@@ -1,6 +1,6 @@
 #!/bin/bash
-# Construit un .pkg autonome : binaire statiquement lié à libusb + LaunchAgent,
-# installés et démarrés automatiquement par le postinstall.
+# Builds a self-contained .pkg: binary statically linked to libusb + LaunchAgent,
+# installed and started automatically by the postinstall script.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -13,7 +13,7 @@ SCRIPTS_DIR="$BUILD_DIR/scripts"
 OUT_DIR="dist"
 OUT_PKG="$OUT_DIR/jog-bridge-$VERSION.pkg"
 
-echo "==> Compilation (release)"
+echo "==> Building (release)"
 swift build -c release
 
 rm -rf "$BUILD_DIR"
@@ -34,4 +34,4 @@ pkgbuild \
     --scripts "$SCRIPTS_DIR" \
     "$OUT_PKG"
 
-echo "==> Package créé : $OUT_PKG"
+echo "==> Package created: $OUT_PKG"

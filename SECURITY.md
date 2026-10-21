@@ -1,20 +1,20 @@
-# Politique de sécurité
+# Security policy
 
-## Signaler une vulnérabilité
+## Reporting a vulnerability
 
-Merci de **ne pas ouvrir d'issue publique** pour une faille de sécurité. Utilisez le
-signalement privé de GitHub (*Security → Report a vulnerability*) sur ce dépôt.
+Please **do not open a public issue** for a security flaw. Use GitHub's private reporting
+(*Security → Report a vulnerability*) on this repository.
 
-## Périmètre
+## Scope
 
-`jog-bridge` tourne avec les droits de l'utilisateur (LaunchAgent, pas de démon root)
-et accède à un périphérique USB précis (VID `06F8`). Il n'ouvre aucun port réseau.
+`jog-bridge` runs with the user's rights (LaunchAgent, no root daemon) and accesses one specific
+USB device (VID `06F8`). It opens no network port.
 
-Points sensibles à connaître :
+Sensitive points to know about:
 
-- le `.pkg` n'est **pas signé ni notarisé** ; vérifiez son origine (compilez-le vous-même
-  avec `scripts/build-pkg.sh`) ;
-- le `postinstall` s'exécute en root pendant l'installation et écrit dans le dossier
-  `LaunchAgents` de l'utilisateur connecté ;
-- le journal est écrit dans `/tmp/jog-bridge.log`, lisible par les autres utilisateurs
-  de la machine ; il ne contient que des événements USB/MIDI.
+- the `.pkg` is **neither signed nor notarised**; check its origin (build it yourself with
+  `scripts/build-pkg.sh`);
+- the `postinstall` script runs as root during installation and writes into the logged-in
+  user's `LaunchAgents` folder;
+- the log is written to `/tmp/jog-bridge.log`, readable by the other users of the machine; it
+  only contains USB/MIDI events.

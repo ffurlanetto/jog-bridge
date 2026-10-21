@@ -1,0 +1,78 @@
+{
+  "description": "Session replayed frame by frame through HerculesFrameDecoder. Expected values written by hand from docs/midi-mapping.md (note = byte*8+bit, CC = byte, value = byte>>1).",
+  "steps": [
+    {
+      "comment": "initial frame: sets the state, nothing is emitted",
+      "frame": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+      "expected": []
+    },
+    {
+      "comment": "Play A pressed (byte 1, bit 2 -> note 10)",
+      "frame": "00 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01",
+      "expected": [
+        "90 0A 7F"
+      ]
+    },
+    {
+      "comment": "only the counter changes: nothing",
+      "frame": "00 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02",
+      "expected": []
+    },
+    {
+      "comment": "Play A released",
+      "frame": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03",
+      "expected": [
+        "80 0A 00"
+      ]
+    },
+    {
+      "comment": "knob byte 6 at 0x80 -> CC 6 = 64",
+      "frame": "00 00 00 00 00 00 80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 04",
+      "expected": [
+        "B0 06 40"
+      ]
+    },
+    {
+      "comment": "byte 6 at 0x81: same 7-bit value, nothing",
+      "frame": "00 00 00 00 00 00 81 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 05",
+      "expected": []
+    },
+    {
+      "comment": "byte 6 at 0xFF -> CC 6 = 127",
+      "frame": "00 00 00 00 00 00 FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 06",
+      "expected": [
+        "B0 06 7F"
+      ]
+    },
+    {
+      "comment": "byte 20 (state mirror) changes: nothing",
+      "frame": "00 00 00 00 00 00 FF 00 00 00 00 00 00 00 00 00 00 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 07",
+      "expected": []
+    },
+    {
+      "comment": "three controls at once, ascending byte order",
+      "frame": "02 00 00 00 00 08 FF 00 00 00 20 00 00 00 00 00 00 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 08",
+      "expected": [
+        "90 01 7F",
+        "90 2B 7F",
+        "B0 0A 10"
+      ]
+    },
+    {
+      "comment": "one release + two presses in byte 3",
+      "frame": "00 00 00 06 00 08 FF 00 00 00 20 00 00 00 00 00 00 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 09",
+      "expected": [
+        "80 01 00",
+        "90 19 7F",
+        "90 1A 7F"
+      ]
+    },
+    {
+      "comment": "a single bit released in byte 3",
+      "frame": "00 00 00 04 00 08 FF 00 00 00 20 00 00 00 00 00 00 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0A",
+      "expected": [
+        "80 19 00"
+      ]
+    }
+  ]
+}

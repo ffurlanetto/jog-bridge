@@ -1,16 +1,16 @@
-/// État des LEDs de la console et traduction des messages MIDI reçus de l'application.
+/// Console LED state, and translation of the MIDI messages received from the application.
 ///
-/// La console pilote ses LEDs par 5 blocs de 16 bits (requêtes de contrôle 0x2D…0x31).
-/// Les blocs 0 à 2 contiennent les LEDs fixes, les blocs 2 à 4 les LEDs clignotantes
-/// (le bloc 2 porte les deux : bits 0…6 clignotants, bits 8…15 fixes).
+/// The console drives its LEDs through 5 blocks of 16 bits (control requests 0x2D…0x31).
+/// Blocks 0 to 2 hold the steady LEDs, blocks 2 to 4 the blinking LEDs
+/// (block 2 carries both: bits 0…6 blinking, bits 8…15 steady).
 ///
-/// Côté MIDI, une LED porte le numéro de note du bouton correspondant (le même que
-/// celui émis par `HerculesFrameDecoder`), de sorte qu'une application qui renvoie
-/// l'état d'un bouton sur la même note allume la bonne LED :
-///  - canal 1 : LED fixe (note on = allumée, note off ou vélocité 0 = éteinte)
-///  - canal 2 : LED clignotante (même principe)
+/// On the MIDI side, a LED uses the note number of its button (the same one
+/// `HerculesFrameDecoder` emits), so an application that echoes a button's state
+/// back on the same note lights the right LED:
+///  - channel 1: steady LED (note on = lit, note off or velocity 0 = unlit)
+///  - channel 2: blinking LED (same principle)
 ///
-/// Table d'après https://github.com/foomatic/djcontrol (Protocol.txt, djcontrol.py).
+/// Table taken from https://github.com/foomatic/djcontrol (Protocol.txt, djcontrol.py).
 struct HerculesLEDs {
     static let blockCount = 5
 
@@ -25,9 +25,9 @@ struct HerculesLEDs {
         let blink: Position
     }
 
-    /// Note MIDI (octet × 8 + bit du bouton dans la trame d'entrée) → LED.
+    /// MIDI note (byte × 8 + button bit in the input frame) → LED.
     private static let table: [UInt8: LED] = {
-        // (octet du bouton, bit du bouton, bloc/bit fixe, bloc/bit clignotant)
+        // (button byte, button bit, steady block/bit, blinking block/bit)
         let entries: [(Int, Int, Position, Position)] = [
             // Deck A
             (4, 7, Position(0, 8), Position(2, 0)),    // PitchReset_A
@@ -61,7 +61,7 @@ struct HerculesLEDs {
             (2, 1, Position(1, 12), Position(3, 4)),   // CUE_B
             (2, 2, Position(1, 4), Position(4, 12)),   // Play_B
             (2, 0, Position(0, 4), Position(3, 12)),   // Listen_B
-            // Commun
+            // Common
             (4, 4, Position(0, 11), Position(2, 3)),   // Vinyl
             (4, 0, Position(0, 3), Position(3, 11)),   // Magic
             (1, 5, Position(1, 11), Position(3, 3)),   // Folders
@@ -76,7 +76,7 @@ struct HerculesLEDs {
 
     private(set) var blocks = [UInt16](repeating: 0, count: HerculesLEDs.blockCount)
 
-    /// Applique un message MIDI complet. Retourne `true` si l'état des LEDs a changé.
+    /// Applies one complete MIDI message. Returns `true` if the LED state changed.
     mutating func apply(_ message: [UInt8]) -> Bool {
         guard message.count == 3 else { return false }
         let kind = message[0] & 0xF0

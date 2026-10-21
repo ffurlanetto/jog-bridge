@@ -1,81 +1,125 @@
-# Développement
+# Development
 
-## Prérequis
+## Prerequisites
 
 ```sh
 xcode-select --install
 brew install libusb pkg-config
 ```
 
-`Package.swift` interroge `pkg-config` à l'évaluation du manifeste pour trouver la
-bibliothèque statique `libusb-1.0.a` et les en-têtes. Il ajoute lui-même les chemins
-Homebrew (`/opt/homebrew`, `/usr/local`) au `PATH`, car Xcode évalue le manifeste sans
-ce `PATH`.
+`Package.swift` queries `pkg-config` when the manifest is evaluated to find the static library
+`libusb-1.0.a` and the headers. It adds the Homebrew paths (`/opt/homebrew`, `/usr/local`) to
+the `PATH` itself, because Xcode evaluates the manifest without that `PATH`.
 
-## Compiler et lancer
+## Command contract
+
+The same `make` targets serve humans, agents and CI:
 
 ```sh
-swift build -c release
-.build/release/jog-bridge --list     # console branchée
-.build/release/jog-bridge --dump     # trafic USB et MIDI
+make help         # list the targets
+make install      # Homebrew prerequisites (libusb, pkg-config)
+make check        # lint + typecheck + test + build + audit — the quality gate
+make test         # swift test
+make pkg VERSION=1.0.0
 ```
 
-Le projet s'ouvre aussi dans Xcode (*File → Open…* sur le dossier ou `Package.swift`).
+`make lint` validates the scripts (`bash -n`, shellcheck if installed), the plist, the JSON and
+the SVG files; `make audit` checks that libusb is statically linked.
 
-Si l'agent installé tourne, il tient déjà la console : arrêtez-le avant de lancer une version
-de développement.
+## Build and run
+
+```sh
+make build                           # or: swift build -c release
+.build/release/jog-bridge --list     # console plugged in
+.build/release/jog-bridge --dump     # USB and MIDI traffic
+```
+
+The project also opens in Xcode (*File → Open…* on the folder or on `Package.swift`).
+
+If the installed agent is running, it already holds the console: stop it before running a
+development build.
 
 ```sh
 launchctl bootout gui/$(id -u)/local.jog-bridge
-# … essais …
+# … experiments …
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.jog-bridge.plist
 ```
 
-## Déboguer
+## Debugging
 
-- `--dump` journalise chaque octet de trame qui change (`USB Δ : [03] 00→04`), le message
-  MIDI produit (`→ MIDI : 90 0A 7F`) et les messages reçus de l'application
-  (`MIDI → LEDs : …`).
-- Les logs vont sur stderr ; sous LaunchAgent : `/tmp/jog-bridge.log`.
-- *Configuration audio et MIDI → Fenêtre → Afficher le studio MIDI* montre les ports
-  virtuels ; *Moniteur MIDI* (ou toute application de monitoring) permet de vérifier le flux.
+- `--dump` logs every frame byte that changes (`USB Δ: [03] 00→04`), the MIDI message produced
+  (`→ MIDI: 90 0A 7F`) and the messages received from the application (`MIDI → LEDs: …`).
+- Logs go to stderr; under the LaunchAgent: `/tmp/jog-bridge.log`.
+- *Audio MIDI Setup → Window → Show MIDI Studio* shows the virtual ports; *MIDI Monitor* (or any
+  monitoring application) lets you check the flow.
 
 ## Tests
 
-Il n'y a pas encore de tests automatisés. `HerculesFrameDecoder`, `HerculesLEDs` et
-`MIDIStreamParser` sont des structures sans dépendance matérielle et se prêtent bien à des
-tests unitaires avec le framework Testing (cible `jog-bridgeTests` à créer ; les types
-sont `internal` dans un `executableTarget`, ce qui impose `@testable import`).
+```sh
+swift test
+```
 
-## Construire le .pkg
+63 tests (Swift Testing), no hardware needed: unit, integration (real CoreMIDI and libusb) and
+non-regression (reference sessions, MIDI contract, djay mapping). Strategy, organisation and
+rules for the reference files: [testing.md](testing.md).
+
+## Building the .pkg
 
 ```sh
 ./scripts/build-pkg.sh 1.0.0
 ```
 
-Le script compile, assemble `.build/pkg/root` et `.build/pkg/scripts`, puis écrit
-`dist/jog-bridge-<version>.pkg`. Ces deux dossiers sont ignorés par git.
+The script builds, assembles `.build/pkg/root` and `.build/pkg/scripts`, then writes
+`dist/jog-bridge-<version>.pkg`. Both folders are ignored by git.
 
-Vérifier le contenu d'un pkg sans l'installer :
+Check a package's contents without installing it:
 
 ```sh
 pkgutil --expand dist/jog-bridge-1.0.0.pkg /tmp/pkg-check
 cat /tmp/pkg-check/Scripts/postinstall
 ```
 
-Vérifier que le binaire n'a pas de dépendance dynamique à libusb :
+Check that the binary has no dynamic dependency on libusb:
 
 ```sh
-otool -L .build/release/jog-bridge     # ne doit pas lister libusb
+otool -L .build/release/jog-bridge     # must not list libusb
 ```
 
-Journal d'installation en cas d'échec :
+Installer log when an installation fails:
 `grep -i jog-bridge /var/log/install.log | tail -30`.
 
-## Publier une version
+## Continuous integration
 
-1. Mettre à jour `CHANGELOG.md`.
-2. `./scripts/build-pkg.sh X.Y.Z`, puis `shasum -a 256 dist/jog-bridge-X.Y.Z.pkg`.
-3. Créer le tag `vX.Y.Z` et joindre le `.pkg` à la release GitHub, en partant de
-   [`.github/RELEASE_TEMPLATE.md`](../.github/RELEASE_TEMPLATE.md) (somme SHA-256, mention
-   que le paquet n'est pas signé : [ADR 0006](adr/0006-launchagent-et-pkg-non-signe.md)).
+- `.github/workflows/ci.yml` (push to `main`, pull requests, manual run):
+  - `build` job: `make check` (lint, tests, build, static linking of libusb);
+  - `package` job (if `build` succeeds): builds the `.pkg`, checks its contents and its binary
+    (self-contained, `--help` works), computes the SHA-256 and uploads both files as an
+    artifact (14 days). Run by hand (*Actions → CI → Run workflow*), it accepts a version;
+    otherwise the package is named `jog-bridge-0.0.0-ci.pkg`;
+  - `guardrails` job (Ubuntu): `make test-hooks` and a gitleaks secret scan over the whole
+    history.
+- `.github/workflows/publish.yml` (tag `vX.Y.Z`): builds the `.pkg`, computes its SHA-256 and
+  creates a **draft** release from
+  [`.github/RELEASE_TEMPLATE.md`](../.github/RELEASE_TEMPLATE.md). You still have to review it
+  and publish it on GitHub.
+
+CI does not test the hardware: no console is plugged into the runners.
+
+## Developing with coding agents
+
+The repository is configured for Claude Code: [`AGENTS.md`](../AGENTS.md) (shared
+instructions) and `.claude/` (skills, subagents, hooks, permissions). The guardrails refuse an
+agent's commit that contains a secret or changes code without a test
+([ADR 0009](adr/0009-guardrails-enforced-outside-the-model.md)); `make test-hooks` proves they
+work. The delivery flow (branch, draft PR, wait for CI) is described in
+[ADR 0010](adr/0010-delivery-flow.md).
+
+## Publishing a release
+
+Manually, or automated by pushing the tag (see above):
+
+1. Update `CHANGELOG.md`.
+2. `./scripts/build-pkg.sh X.Y.Z`, then `shasum -a 256 dist/jog-bridge-X.Y.Z.pkg`.
+3. Create the `vX.Y.Z` tag and attach the `.pkg` to the GitHub release, starting from
+   [`.github/RELEASE_TEMPLATE.md`](../.github/RELEASE_TEMPLATE.md) (SHA-256 checksum, a note that
+   the package is unsigned: [ADR 0006](adr/0006-launchagent-and-unsigned-pkg.md)).

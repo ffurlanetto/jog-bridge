@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+
+  "permissions": {
+    "defaultMode": "default",
+    "disableBypassPermissionsMode": "disable",
+
+    "allow": [
+      "Bash(make help)",
+      "Bash(make install)",
+      "Bash(make build)",
+      "Bash(make test*)",
+      "Bash(make lint)",
+      "Bash(make typecheck)",
+      "Bash(make audit)",
+      "Bash(make check)",
+      "Bash(make pkg*)",
+      "Bash(make clean)",
+      "Bash(swift build*)",
+      "Bash(swift test*)",
+      "Bash(plutil -lint*)",
+      "Bash(otool -L*)",
+      "Bash(pkgutil --expand*)",
+      "Bash(pkgutil --payload-files*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git add*)",
+      "Bash(git stash*)",
+      "Bash(git fetch*)",
+      "Bash(gh pr checks*)",
+      "Bash(gh pr view*)",
+      "Bash(gh run view*)",
+      "Bash(gh run list*)",
+      "Read(**)",
+      "Glob(**)",
+      "Grep(**)"
+    ],
+
+    "ask": [
+      "Bash(git push*)",
+      "Bash(git reset --hard*)",
+      "Bash(git rebase*)",
+      "Bash(git checkout*)",
+      "Bash(gh pr create*)",
+      "Bash(gh pr ready*)",
+      "Bash(gh release*)",
+      "Bash(make dev)",
+      "Bash(swift run*)",
+      "Bash(launchctl *)",
+      "Bash(sudo *)",
+      "Bash(open *.pkg)",
+      "Bash(pkgutil --forget*)",
+      "WebFetch"
+    ],
+
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "Bash(git commit --no-verify*)",
+      "Bash(git push --force*)",
+      "Bash(curl * | bash*)",
+      "Bash(curl * | sh*)",
+      "Bash(wget * | bash*)",
+      "Bash(wget * | sh*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/secrets*)",
+      "Read(**/*.key)",
+      "Read(**/*.pem)",
+      "Read(**/*.p8)",
+      "Read(**/*.p12)",
+      "Read(**/*.pfx)",
+      "Read(**/*.mobileprovision)",
+      "Read(**/AuthKey_*)",
+      "Read(**/id_rsa*)",
+      "Read(**/id_ed25519*)",
+      "Read(**/*.credentials)"
+    ]
+  },
+
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/scan-secrets.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git commit*)",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/block-commit-secrets.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "if": "Bash(git commit*)",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/require-tests.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+
+  "enableAllProjectMcpServers": false,
+  "cleanupPeriodDays": 30
+}
