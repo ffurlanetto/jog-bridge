@@ -59,8 +59,10 @@ Do not change without discussing:
 Use the issue templates. Always attach the output of:
 
 ```sh
+# On an installed copy, `jog-bridge` is
+# /Applications/Jog Bridge.app/Contents/MacOS/jog-bridge
 jog-bridge --list
-jog-bridge --dump     # while reproducing the problem
+jog-bridge --dump     # while reproducing the problem (stop the agent first)
 tail -50 /tmp/jog-bridge.log
 ```
 

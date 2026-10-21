@@ -23,7 +23,7 @@
 | LEDs | `LEDs.swift` | Translates a MIDI note (channel 1 or 2) into a bit in 5 blocks of 16 bits. |
 | MIDI parser | `MIDIStreamParser.swift` | Rebuilds complete MIDI messages from the bytes received from the application (running status, SysEx, real-time). |
 | MIDI ports | `VirtualMIDIPorts.swift` | Creates a virtual CoreMIDI source and destination with fixed identifiers. |
-| LaunchAgent | `local.jog-bridge.plist` | Starts and keeps the process alive in the user session. |
+| LaunchAgent | `local.jog-bridge.plist` | Starts and keeps the process alive in the user session; tied to the app bundle for its name and icon. |
 
 ## Console → application flow
 
@@ -65,7 +65,11 @@ failing to be created.
 
 ## Distribution
 
-`scripts/build-pkg.sh` builds in release, assembles the tree (`/usr/local/bin/jog-bridge`) and
-calls `pkgbuild` with `scripts/pkg/postinstall`. That script copies the plist into the logged-in
-user's `LaunchAgents` folder (found through `/dev/console`) and then loads the agent. See
-[ADR 0006](adr/0006-launchagent-and-unsigned-pkg.md).
+`scripts/build-pkg.sh` builds in release, assembles the app bundle
+`/Applications/Jog Bridge.app` (binary, `Info.plist`, `AppIcon.icns`,
+ad-hoc signature) and calls `pkgbuild` with `scripts/pkg/postinstall`. That script copies the plist
+into the logged-in user's `LaunchAgents` folder (found through `/dev/console`), registers the app
+with Launch Services and loads the agent. The plist runs the bundle's executable and names the
+bundle in `AssociatedBundleIdentifiers`, so System Settings shows the app's name and icon. See
+[ADR 0006](adr/0006-launchagent-and-unsigned-pkg.md) and
+[ADR 0011](adr/0011-app-bundle-for-the-launch-agent.md).

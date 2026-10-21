@@ -2,10 +2,14 @@
 
 ## Quick diagnosis
 
+The installed executable lives inside the app bundle (see the README, "Running the installed
+binary"):
+
 ```sh
+JOG="/Applications/Jog Bridge.app/Contents/MacOS/jog-bridge"
 launchctl print gui/$(id -u)/local.jog-bridge | grep -E "state|pid|runs|last exit"
 tail -30 /tmp/jog-bridge.log
-jog-bridge --list
+"$JOG" --list
 ```
 
 A healthy start ends with:
@@ -30,7 +34,7 @@ if you still see the error, check that you are installing a `.pkg` built after t
 ## The agent does not start: `Bootstrap failed: 5: Input/output error`
 
 System Settings → General → **Login Items & Extensions → Allow in the Background**: the
-`jog-bridge` item must be enabled. Then:
+**Jog Bridge** item must be enabled. Then:
 
 ```sh
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.jog-bridge.plist
@@ -45,8 +49,9 @@ the driver. Mixxx and other DJ software can also claim the console.
 
 ## The console is detected but nothing reaches the DJ application
 
-1. `jog-bridge --dump`: every action must print a `USB Δ` line. If not, check the endpoint with
-   `--list` and try `--in 0x81`.
+1. `--dump` (stop the agent first, it holds the console:
+   `launchctl bootout gui/$(id -u)/local.jog-bridge`): every action must print a `USB Δ` line.
+   If not, check the endpoint with `--list` and try `--in 0x81`.
 2. Check that the DJ application uses the "Hercules MP3 e2" port as both input **and** output.
 3. If a message comes out on the wrong channel or with another note, see
    [midi-mapping.md](midi-mapping.md).
@@ -58,6 +63,24 @@ the driver. Mixxx and other DJ software can also claim the console.
 - `--dump` prints `MIDI → LEDs: …` for every message received from the application. If nothing
   appears, the application is not sending to the "Hercules MP3 e2" destination.
 - A `LED write: …` log signals a USB error.
+
+## The item shows a generic icon or the name "jog-bridge" in System Settings
+
+System Settings takes the name and icon of a background item from the app it is associated with
+(`AssociatedBundleIdentifiers` in the agent plist → the `Jog Bridge.app` bundle,
+[ADR 0011](adr/0011-app-bundle-for-the-launch-agent.md)). If you still see a bare executable name
+and the generic icon:
+
+1. Check the bundle is installed: `ls "/Applications/Jog Bridge.app"`.
+2. Check that the bundle identifier matches the plist:
+   `plutil -p ~/Library/LaunchAgents/local.jog-bridge.plist | grep -A1 Associated` and
+   `plutil -p "/Applications/Jog Bridge.app/Contents/Info.plist" | grep BundleIdentifier`.
+3. Re-register the app with Launch Services and reload the agent (log out and in, or
+   `launchctl bootout` + `bootstrap`).
+
+macOS only fully trusts the association when the executable and the app carry the same Team ID;
+the package is ad-hoc signed (no Team ID), so the display may stay generic until it is signed with a
+Developer ID.
 
 ## Gatekeeper blocks the .pkg
 

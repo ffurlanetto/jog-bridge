@@ -6,7 +6,13 @@
     <string>local.jog-bridge</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/bin/jog-bridge</string>
+        <string>/Applications/Jog Bridge.app/Contents/MacOS/jog-bridge</string>
+    </array>
+    <!-- Ties this agent to the app bundle, so System Settings → Login Items shows the app's
+         name and icon instead of the bare executable name (see ADR 0011). -->
+    <key>AssociatedBundleIdentifiers</key>
+    <array>
+        <string>io.github.ffurlanetto.jog-bridge</string>
     </array>
     <key>RunAtLoad</key>
     <true/>

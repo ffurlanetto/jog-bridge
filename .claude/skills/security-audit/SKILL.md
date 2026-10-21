@@ -25,7 +25,7 @@ Adapt verifications to the language and stack defined in Part B of AGENTS.md.
 
 ## 3 · Privileged scripts (`postinstall`, `build-pkg.sh`)
 - `postinstall` runs as **root**: every path quoted, derived only from the console user
-- No `eval`, no unquoted expansion, no write outside the user's `LaunchAgents` and `/usr/local/bin`
+- No `eval`, no unquoted expansion, no write outside the user's `LaunchAgents` and `/Applications/Jog Bridge.app`
 - `launchctl` failures cannot leave the system half-configured or fail the installer (ADR 0006)
 - `/tmp` log: nothing sensitive written (world-readable)
 

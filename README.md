@@ -105,11 +105,15 @@ open ~/Downloads/jog-bridge-1.0.0.pkg
 A package you build yourself with `./scripts/build-pkg.sh` carries no quarantine attribute and
 opens without a warning.
 
-The installation copies the binary to `/usr/local/bin/`, installs the LaunchAgent in
-`~/Library/LaunchAgents/` and starts it immediately.
+The installation puts the app bundle `Jog Bridge.app` in
+`/Applications/`, installs the LaunchAgent in
+`~/Library/LaunchAgents/` and starts it immediately. The bundle gives the item a proper name
+("Jog Bridge") and icon in *System Settings → Login Items & Extensions*
+([ADR 0011](docs/adr/0011-app-bundle-for-the-launch-agent.md)); no loose binary is installed in
+`/usr/local/bin`.
 
-**Background permission.** On first start, macOS asks you to allow the `jog-bridge` item. Check
-that it is enabled in *System Settings → General → Login Items & Extensions → Allow in the
+**Background permission.** On first start, macOS asks you to allow the **Jog Bridge** item.
+Check that it is enabled in *System Settings → General → Login Items & Extensions → Allow in the
 Background*. As long as it is disabled, launchd refuses to load the agent
 (`Bootstrap failed: 5: Input/output error`). Once enabled, log out and back in, or load the
 agent by hand:
@@ -118,12 +122,10 @@ agent by hand:
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.jog-bridge.plist
 ```
 
-### Manually
+### From the command line
 
 ```sh
-sudo install -m 755 .build/release/jog-bridge /usr/local/bin/
-cp local.jog-bridge.plist ~/Library/LaunchAgents/
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.jog-bridge.plist
+sudo installer -pkg dist/jog-bridge-1.0.0.pkg -target /
 ```
 
 Check that the service is running:
@@ -133,13 +135,33 @@ launchctl print gui/$(id -u)/local.jog-bridge | grep -E "state|pid|runs|last exi
 tail -f /tmp/jog-bridge.log
 ```
 
+### Running the installed binary
+
+The executable lives inside the bundle, so it is not on your `PATH`. To use `--list` or `--dump`
+on an installed copy, call it by its full path (stop the agent first for `--dump`, which needs
+the console to itself):
+
+```sh
+JOG="/Applications/Jog Bridge.app/Contents/MacOS/jog-bridge"
+"$JOG" --list
+launchctl bootout gui/$(id -u)/local.jog-bridge && "$JOG" --dump
+```
+
+Everywhere else in this documentation, `jog-bridge` stands for that executable (or for
+`.build/release/jog-bridge` in a checkout). If you want a short command, add an alias to your
+shell profile: `alias jog-bridge='/Applications/Jog Bridge.app/Contents/MacOS/jog-bridge'`.
+
 ### Uninstall
 
 ```sh
 launchctl bootout gui/$(id -u)/local.jog-bridge
 rm ~/Library/LaunchAgents/local.jog-bridge.plist
-sudo rm /usr/local/bin/jog-bridge
+sudo rm -rf "/Applications/Jog Bridge.app"
+sudo pkgutil --forget local.jog-bridge
 ```
+
+(An early build also installed `/usr/local/bin/jog-bridge`; the installer removes it, and you can
+delete it by hand if you installed that build and never upgraded.)
 
 ## 5. In the DJ software
 

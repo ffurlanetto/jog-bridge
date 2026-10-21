@@ -238,9 +238,11 @@ make check        # lint + typecheck + test + build + audit — the quality gate
 make test-hooks   # proves the guardrails (.claude/hooks) fire
 make dev          # daemon locally with --dump (console plugged in)
 make pkg VERSION=1.0.0   # dist/jog-bridge-1.0.0.pkg
+make icon         # regenerate assets/branding/AppIcon.icns from the logo
 ```
 
-Hardware diagnosis: `.build/release/jog-bridge --list` and `--dump` (console plugged in).
+Hardware diagnosis: `.build/release/jog-bridge --list` and `--dump` (console plugged in). On an
+installed copy the executable is inside the bundle (see the README); stop the agent before `--dump`.
 
 ---
 
@@ -257,8 +259,8 @@ Hardware diagnosis: `.build/release/jog-bridge --list` and `--dump` (console plu
 | `Sources/jog-bridge/VirtualMIDIPorts.swift` | Virtual CoreMIDI source and destination |
 | `Sources/CLibUSB/` | System module (`shim.h`, `module.modulemap`) for libusb |
 | `Tests/jog-bridgeTests/` | Unit, integration, non-regression; `Fixtures/` = reference sessions |
-| `scripts/` | `build-pkg.sh`, `pkg/postinstall`, `test-hooks.sh` |
-| `local.jog-bridge.plist` | LaunchAgent |
+| `scripts/` | `build-pkg.sh` (app bundle + .pkg), `pkg/postinstall`, `test-hooks.sh`, `make-icon.sh`, `render-svg.swift` |
+| `local.jog-bridge.plist` | LaunchAgent (runs the bundle's executable, `AssociatedBundleIdentifiers`) |
 | `docs/` | Architecture, protocol, mapping, tests, branding, ADRs |
 | `.claude/` | Skills, subagents, hooks, permissions, test policy |
 
@@ -283,6 +285,11 @@ Hardware diagnosis: `.build/release/jog-bridge --list` and `--dump` (console plu
 - **`launchctl bootstrap` can fail** (error 5) until the item is allowed in *Login Items &
   Extensions*: the `postinstall` must never fail the installation because of that.
   [ADR 0006](docs/adr/0006-launchagent-and-unsigned-pkg.md)
+- **The binary is installed inside an app bundle** (`/Applications/Jog Bridge.app`) so System
+  Settings shows a name and icon. No loose binary in
+  `/usr/local/bin`. The bundle identifier (`io.github.ffurlanetto.jog-bridge`) must match in
+  `scripts/build-pkg.sh` and `local.jog-bridge.plist`, and the plist's program path must point
+  inside the bundle. [ADR 0011](docs/adr/0011-app-bundle-for-the-launch-agent.md)
 - `dist/` and `.build/` are never committed.
 
 **Without an explicit request, do not:** install the `.pkg`, load or unload the LaunchAgent

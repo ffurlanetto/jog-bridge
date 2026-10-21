@@ -41,6 +41,7 @@ All in `assets/branding/`; they are original and published under the project's l
 | `logo.svg` / `logo.png` (512×512) | Project icon |
 | `banner.svg` | README header |
 | `social-preview.svg` / `social-preview.png` (1280×640) | GitHub social preview image |
+| `AppIcon.icns` | Icon of the `Jog Bridge.app` bundle, shown in System Settings → Login Items ([ADR 0011](adr/0011-app-bundle-for-the-launch-agent.md)) |
 
 The logo shows a jog-wheel platter (cyan ring, magenta marker) crossed by a bridge arch linking
 two dots: USB on one side, MIDI on the other.
@@ -63,13 +64,15 @@ reference renders.
 After changing an SVG, render at the exact size with an AppKit script (macOS):
 
 ```sh
-swift render.swift social-preview.svg social-preview.png 1280 640
-swift render.swift logo.svg logo.png 512 512
+swift scripts/render-svg.swift assets/branding/social-preview.svg assets/branding/social-preview.png 1280 640
+swift scripts/render-svg.swift assets/branding/logo.svg assets/branding/logo.png 512 512
+make icon        # regenerates assets/branding/AppIcon.icns from logo.svg
 ```
 
-where `render.swift` loads the SVG into an `NSImage`, draws it into an `NSBitmapImageRep` of
-the wanted size and writes the PNG. (`qlmanage -t` is not suitable: it produces cropped square
-thumbnails.)
+`scripts/render-svg.swift` loads the SVG into an `NSImage`, draws it into an `NSBitmapImageRep`
+of the wanted size and writes the PNG. (`qlmanage -t` is not suitable: it produces cropped
+square thumbnails.) The `.icns` is committed, so building the package does not need to render
+anything.
 
 ## Configuring the GitHub repository
 

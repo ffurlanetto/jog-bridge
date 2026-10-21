@@ -26,7 +26,7 @@
      ```
 
    On recent macOS versions, right-click → *Open* is not enough for an installer package.
-3. After installing, check that the `jog-bridge` item is enabled in *System Settings → General →
+3. After installing, check that the **Jog Bridge** item is enabled in *System Settings → General →
    Login Items & Extensions → Allow in the Background*. Without it, the agent does not start.
 4. Plug in the console: the "Hercules MP3 e2" MIDI port appears in your DJ software.
 
@@ -46,7 +46,8 @@ Reinstalling the `.pkg` replaces the binary and reloads the agent. To uninstall:
 ```sh
 launchctl bootout gui/$(id -u)/local.jog-bridge
 rm ~/Library/LaunchAgents/local.jog-bridge.plist
-sudo rm /usr/local/bin/jog-bridge
+sudo rm -rf "/Applications/Jog Bridge.app"
+sudo pkgutil --forget local.jog-bridge
 ```
 
 ## Hardware tested

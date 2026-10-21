@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Installer libusb et pkg-config
+      - name: Install libusb and pkg-config
         run: make install
 
       # lint + typecheck + test + build + audit
@@ -59,7 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Installer libusb et pkg-config
+      - name: Install libusb and pkg-config
         run: make install
 
       - name: Build the .pkg
@@ -73,18 +73,33 @@ jobs:
           test -f "$RUNNER_TEMP/pkg-check/Scripts/local.jog-bridge.plist"
           # The postinstall must tolerate a launchctl failure (see ADR 0006).
           grep -q kickstart "$RUNNER_TEMP/pkg-check/Scripts/postinstall"
-          pkgutil --payload-files "$pkg" | grep -q "usr/local/bin/jog-bridge"
+          app="Applications/Jog Bridge.app"
+          payload="$(pkgutil --payload-files "$pkg")"
+          echo "$payload" | grep -qF "./$app/Contents/MacOS/jog-bridge"
+          echo "$payload" | grep -qF "./$app/Contents/Info.plist"
+          echo "$payload" | grep -qF "./$app/Contents/Resources/AppIcon.icns"
+          # No loose binary: the executable lives in the bundle only (ADR 0011).
+          ! echo "$payload" | grep -q "usr/local/bin"
 
-      - name: Check that the package's binary is self-contained
+      - name: Check the app bundle (self-contained, consistent with the agent plist)
         run: |
           pkgutil --expand-full "dist/jog-bridge-$VERSION.pkg" "$RUNNER_TEMP/pkg-full"
-          bin=$(find "$RUNNER_TEMP/pkg-full" -type f -name jog-bridge | head -1)
-          test -n "$bin"
+          app="$RUNNER_TEMP/pkg-full/Payload/Applications/Jog Bridge.app"
+          bin="$app/Contents/MacOS/jog-bridge"
+          test -x "$bin"
           if otool -L "$bin" | grep -qi libusb; then
             echo "The .pkg binary depends dynamically on libusb" >&2
             exit 1
           fi
           "$bin" --help > /dev/null
+          codesign --verify --deep --strict "$app"
+          # The bundle id, the plist's AssociatedBundleIdentifiers and its program path must agree.
+          plist="$RUNNER_TEMP/pkg-full/Scripts/local.jog-bridge.plist"
+          bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")"
+          assoc_id="$(/usr/libexec/PlistBuddy -c 'Print :AssociatedBundleIdentifiers:0' "$plist")"
+          program="$(/usr/libexec/PlistBuddy -c 'Print :ProgramArguments:0' "$plist")"
+          test "$bundle_id" = "$assoc_id"
+          test "$program" = "/Applications/Jog Bridge.app/Contents/MacOS/jog-bridge"
 
       - name: SHA-256 checksum
         run: |

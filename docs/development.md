@@ -72,11 +72,15 @@ rules for the reference files: [testing.md](testing.md).
 The script builds, assembles `.build/pkg/root` and `.build/pkg/scripts`, then writes
 `dist/jog-bridge-<version>.pkg`. Both folders are ignored by git.
 
+The package installs `/Applications/Jog Bridge.app` (binary in
+`Contents/MacOS`, `Info.plist`, `AppIcon.icns`, ad-hoc signature). The icon is generated from
+`assets/branding/logo.svg` by `make icon` and the `.icns` is committed.
+
 Check a package's contents without installing it:
 
 ```sh
-pkgutil --expand dist/jog-bridge-1.0.0.pkg /tmp/pkg-check
-cat /tmp/pkg-check/Scripts/postinstall
+pkgutil --payload-files dist/jog-bridge-1.0.0.pkg
+pkgutil --expand dist/jog-bridge-1.0.0.pkg "$(mktemp -d)/pkg-check"   # then read Scripts/postinstall
 ```
 
 Check that the binary has no dynamic dependency on libusb:
