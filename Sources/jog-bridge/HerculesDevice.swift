@@ -12,11 +12,11 @@ struct Endpoints {
     var inKind: TransferKind
 }
 
-/// Accès USB à la console via libusb, avec reconnexion automatique.
+/// USB access to the console through libusb, with automatic reconnection.
 ///
-/// Les entrées arrivent par un endpoint bulk. Les LEDs, elles, ne passent pas par les
-/// endpoints bulk de l'interface 1 (leur taille de paquet est invalide et macOS ne crée
-/// pas les pipes) mais par des transferts de contrôle sur l'endpoint 0.
+/// Inputs arrive on a bulk endpoint. The LEDs do not go through the interface 1 bulk
+/// endpoints (their packet size is invalid and macOS does not create the pipes) but
+/// through control transfers on endpoint 0.
 final class HerculesDevice {
     private var ctx: OpaquePointer?
     private var handle: OpaquePointer?
@@ -25,7 +25,7 @@ final class HerculesDevice {
     private let lock = NSLock()
     private let config: Config
 
-    // Requêtes de contrôle propriétaires de la console.
+    // Console-specific (vendor) control requests.
     private let requestTypeIn: UInt8 = 0xC0
     private let requestTypeOut: UInt8 = 0x40
     private let ledRequestBase: UInt8 = 0x2D
@@ -42,18 +42,18 @@ final class HerculesDevice {
         guard let h = libusb_open_device_with_vid_pid(ctx, config.vendorID, config.productID) else {
             return false
         }
-        // Sans effet si aucun driver noyau ne tient l'interface (cas normal).
+        // No effect if no kernel driver holds the interface (the normal case).
         _ = libusb_set_auto_detach_kernel_driver(h, 1)
 
         let rc = libusb_claim_interface(h, config.interface)
         guard rc == 0 else {
-            log("Impossible de réclamer l'interface \(config.interface) : \(usbErrorName(rc)). "
-                + "Un ancien driver Hercules est-il installé ?")
+            log("Cannot claim interface \(config.interface): \(usbErrorName(rc)). "
+                + "Is an old Hercules driver still installed?")
             libusb_close(h)
             return false
         }
         guard let eps = resolveEndpoints(h) else {
-            log("Aucun endpoint d'entrée trouvé sur l'interface \(config.interface) — essayez --list.")
+            log("No input endpoint found on interface \(config.interface) — try --list.")
             libusb_release_interface(h, config.interface)
             libusb_close(h)
             return false
@@ -62,12 +62,12 @@ final class HerculesDevice {
         initialize(h)
 
         lock.lock(); handle = h; endpoints = eps; lock.unlock()
-        log(String(format: "Console connectée — entrée 0x%02X (%@)", eps.inAddress, eps.inKind.rawValue))
-        sendLEDs() // rétablit l'état des LEDs après une reconnexion
+        log(String(format: "Console connected — input 0x%02X (%@)", eps.inAddress, eps.inKind.rawValue))
+        sendLEDs() // restores the LED state after a reconnection
         return true
     }
 
-    /// Séquence d'initialisation de la console (d'après https://github.com/foomatic/djcontrol).
+    /// Console initialisation sequence (from https://github.com/foomatic/djcontrol).
     private func initialize(_ h: OpaquePointer) {
         var reply = [UInt8](repeating: 0, count: 2)
         func query(_ request: UInt8, _ value: UInt16) {
@@ -79,7 +79,7 @@ final class HerculesDevice {
         query(0x2C, 0x0000)
         query(0x2C, 0x0000)
         for value: UInt16 in [0x0300, 0x0400, 0x0500, 0x0600, 0x0200] { query(0x29, value) }
-        // CLEAR_FEATURE(ENDPOINT_HALT) sur l'endpoint 0x82, puis commande finale.
+        // CLEAR_FEATURE(ENDPOINT_HALT) on endpoint 0x82, then the final command.
         _ = libusb_control_transfer(h, 0x02, 0x01, 0, 0x82, nil, 0, 500)
         _ = libusb_control_transfer(h, requestTypeOut, 0x27, 0, 0, nil, 0, 500)
     }
@@ -121,7 +121,7 @@ final class HerculesDevice {
             }
         }
 
-        // L'option --in a priorité sur la détection.
+        // --in takes precedence over detection.
         if let forcedIn = config.endpointIn { found.inAddress = forcedIn; haveIn = true }
         return haveIn ? found : nil
     }
@@ -137,7 +137,7 @@ final class HerculesDevice {
         }
     }
 
-    /// Boucle de lecture bloquante (à lancer sur un thread dédié).
+    /// Blocking read loop (to be run on a dedicated thread).
     func run(onData: ([UInt8]) -> Void) -> Never {
         var buffer = [UInt8](repeating: 0, count: 512)
         var waitingLogged = false
@@ -147,7 +147,7 @@ final class HerculesDevice {
                 if open() {
                     waitingLogged = false
                 } else {
-                    if !waitingLogged { log("En attente de la console…"); waitingLogged = true }
+                    if !waitingLogged { log("Waiting for the console…"); waitingLogged = true }
                     Thread.sleep(forTimeInterval: 2)
                     continue
                 }
@@ -164,16 +164,16 @@ final class HerculesDevice {
                 continue
             }
             if rc == LIBUSB_ERROR_OVERFLOW.rawValue || rc == LIBUSB_ERROR_INTERRUPTED.rawValue {
-                log("Lecture USB : \(usbErrorName(rc)) (ignoré)")
+                log("USB read: \(usbErrorName(rc)) (ignored)")
                 continue
             }
-            log("Console déconnectée (\(usbErrorName(rc)))")
+            log("Console disconnected (\(usbErrorName(rc)))")
             close()
         }
     }
 
-    /// Mémorise l'état des LEDs et l'envoie à la console si elle est connectée.
-    /// Appelé depuis le thread CoreMIDI.
+    /// Remembers the LED state and sends it to the console if it is connected.
+    /// Called from the CoreMIDI thread.
     func setLEDs(_ blocks: [UInt16]) {
         lock.lock(); defer { lock.unlock() }
         ledBlocks = blocks
@@ -185,14 +185,14 @@ final class HerculesDevice {
         sendLEDsLocked()
     }
 
-    /// Envoie les 5 blocs de LEDs ; le verrou doit être tenu.
+    /// Sends the 5 LED blocks; the lock must be held.
     private func sendLEDsLocked() {
         guard let h = handle else { return }
         for (index, value) in ledBlocks.enumerated() {
             let rc = libusb_control_transfer(h, requestTypeOut, ledRequestBase + UInt8(index),
                                              value, 0, nil, 0, 100)
             if rc < 0 {
-                log("Écriture LED : \(usbErrorName(rc))")
+                log("LED write: \(usbErrorName(rc))")
                 return
             }
         }
@@ -200,12 +200,12 @@ final class HerculesDevice {
 
     // MARK: - Diagnostic
 
-    /// Liste les périphériques du fabricant (VID) et leurs endpoints.
+    /// Lists the vendor's devices (by VID) and their endpoints.
     func listDevices() {
         var list: UnsafeMutablePointer<OpaquePointer?>?
         let count = libusb_get_device_list(ctx, &list)
         guard count >= 0, let devices = list else {
-            print("libusb_get_device_list : \(usbErrorName(Int32(count)))"); return
+            print("libusb_get_device_list: \(usbErrorName(Int32(count)))"); return
         }
         defer { libusb_free_device_list(devices, 1) }
 
@@ -215,30 +215,30 @@ final class HerculesDevice {
             var d = libusb_device_descriptor()
             guard libusb_get_device_descriptor(dev, &d) == 0, d.idVendor == config.vendorID else { continue }
             any = true
-            print(String(format: "Périphérique %04X:%04X (bus %d, adresse %d)",
+            print(String(format: "Device %04X:%04X (bus %d, address %d)",
                          d.idVendor, d.idProduct, libusb_get_bus_number(dev), libusb_get_device_address(dev)))
 
             var desc: UnsafeMutablePointer<libusb_config_descriptor>?
             guard libusb_get_active_config_descriptor(dev, &desc) == 0, let cfg = desc else {
-                print("  (descripteur de configuration illisible)"); continue
+                print("  (unreadable configuration descriptor)"); continue
             }
             defer { libusb_free_config_descriptor(cfg) }
             for f in 0..<Int(cfg.pointee.bNumInterfaces) {
                 let iface = cfg.pointee.interface[f]
                 for a in 0..<Int(iface.num_altsetting) {
                     let alt = iface.altsetting[a]
-                    print(String(format: "  Interface %d alt %d — classe 0x%02X", alt.bInterfaceNumber,
+                    print(String(format: "  Interface %d alt %d — class 0x%02X", alt.bInterfaceNumber,
                                  alt.bAlternateSetting, alt.bInterfaceClass))
                     for e in 0..<Int(alt.bNumEndpoints) {
                         let ep = alt.endpoint[e]
                         let type = ["control", "isochronous", "bulk", "interrupt"][Int(ep.bmAttributes & 3)]
                         let dir = ep.bEndpointAddress & 0x80 != 0 ? "IN " : "OUT"
-                        print(String(format: "    Endpoint 0x%02X %@ %@ (max %d octets)",
+                        print(String(format: "    Endpoint 0x%02X %@ %@ (max %d bytes)",
                                      ep.bEndpointAddress, dir, type, ep.wMaxPacketSize))
                     }
                 }
             }
         }
-        if !any { print(String(format: "Aucun périphérique avec le VID %04X n'est branché.", config.vendorID)) }
+        if !any { print(String(format: "No device with VID %04X is plugged in.", config.vendorID)) }
     }
 }

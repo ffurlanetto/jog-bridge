@@ -1,0 +1,161 @@
+{
+  "description": "MIDI messages applied to HerculesLEDs. Positions taken from the LED table in LEDs.swift (Play A = steady 1/2, blinking 4/10; Pitch Reset A = 0/8 and 2/0; Sync A = 0/10). Blocks are 16-bit integers.",
+  "steps": [
+    {
+      "comment": "channel 1: Play A steady LED on (block 1, bit 2)",
+      "midi": "90 0A 7F",
+      "changed": true,
+      "blocks": [
+        0,
+        4,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "comment": "same message: no change",
+      "midi": "90 0A 7F",
+      "changed": false,
+      "blocks": [
+        0,
+        4,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "comment": "channel 2: Play A blinking LED (block 4, bit 10)",
+      "midi": "91 0A 7F",
+      "changed": true,
+      "blocks": [
+        0,
+        4,
+        0,
+        0,
+        1024
+      ]
+    },
+    {
+      "comment": "Note On velocity 0 = off (steady)",
+      "midi": "90 0A 00",
+      "changed": true,
+      "blocks": [
+        0,
+        0,
+        0,
+        0,
+        1024
+      ]
+    },
+    {
+      "comment": "Note Off on an already unlit LED: no change",
+      "midi": "80 0A 40",
+      "changed": false,
+      "blocks": [
+        0,
+        0,
+        0,
+        0,
+        1024
+      ]
+    },
+    {
+      "comment": "blinking LED off",
+      "midi": "91 0A 00",
+      "changed": true,
+      "blocks": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "comment": "Pitch Reset A steady (block 0, bit 8)",
+      "midi": "90 27 7F",
+      "changed": true,
+      "blocks": [
+        256,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "comment": "Pitch Reset A blinking (block 2, bit 0)",
+      "midi": "91 27 7F",
+      "changed": true,
+      "blocks": [
+        256,
+        0,
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "comment": "Sync A steady adds to block 0 (bit 10)",
+      "midi": "90 25 7F",
+      "changed": true,
+      "blocks": [
+        1280,
+        0,
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "comment": "channel 3 ignored",
+      "midi": "92 0A 7F",
+      "changed": false,
+      "blocks": [
+        1280,
+        0,
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "comment": "note without a LED ignored",
+      "midi": "90 63 7F",
+      "changed": false,
+      "blocks": [
+        1280,
+        0,
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "comment": "Control Change ignored",
+      "midi": "B0 0A 7F",
+      "changed": false,
+      "blocks": [
+        1280,
+        0,
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "comment": "truncated message ignored",
+      "midi": "90 0A",
+      "changed": false,
+      "blocks": [
+        1280,
+        0,
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
-# Dépannage
+# Troubleshooting
 
-## Diagnostic rapide
+## Quick diagnosis
 
 ```sh
 launchctl print gui/$(id -u)/local.jog-bridge | grep -E "state|pid|runs|last exit"
@@ -8,65 +8,77 @@ tail -30 /tmp/jog-bridge.log
 jog-bridge --list
 ```
 
-Un démarrage sain se termine par :
+A healthy start ends with:
 
 ```
-Ports MIDI virtuels « Hercules MP3 e2 » créés.
-Console connectée — entrée 0x81 (bulk)
+Virtual MIDI ports “Hercules MP3 e2” created.
+Console connected — input 0x81 (bulk)
 ```
 
-## L'installation du .pkg échoue (« erreur pendant l'exécution des scripts »)
+## The .pkg installation fails ("an error occurred while running scripts")
 
-Le `postinstall` a retourné un code non nul. Les fichiers ont pourtant déjà été copiés
-(binaire et plist), ce qui donne l'impression d'une installation à moitié réussie.
+The `postinstall` returned a non-zero code. The files had nevertheless already been copied
+(binary and plist), which gives the impression of a half-successful installation.
 
-Consulter la cause : `grep -i jog-bridge /var/log/install.log | tail -30`.
+Find the cause: `grep -i jog-bridge /var/log/install.log | tail -30`.
 
-Cause connue : `launchctl bootstrap` échoue quand l'agent n'est pas autorisé (ci-dessous) ou
-quand un ancien service est encore en cours de déchargement. Depuis la version corrigée, le
-script réessaie puis ignore l'échec ; si vous voyez encore l'erreur, vérifiez que vous
-installez un `.pkg` construit après la correction (`pkgutil --expand`, puis chercher
-`kickstart` dans `Scripts/postinstall`).
+Known cause: `launchctl bootstrap` fails when the agent is not authorised (below) or when an
+old service is still unloading. Since the fix, the script retries and then ignores the failure;
+if you still see the error, check that you are installing a `.pkg` built after the fix
+(`pkgutil --expand`, then look for `kickstart` in `Scripts/postinstall`).
 
-## L'agent ne démarre pas : `Bootstrap failed: 5: Input/output error`
+## The agent does not start: `Bootstrap failed: 5: Input/output error`
 
-Réglages Système → Général → **Ouverture et extensions → Autoriser en arrière-plan** :
-l'élément `jog-bridge` doit être activé. Puis :
+System Settings → General → **Login Items & Extensions → Allow in the Background**: the
+`jog-bridge` item must be enabled. Then:
 
 ```sh
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.jog-bridge.plist
 ```
 
-Un état « Pas d'exécution en arrière-plan » dans cette liste signifie que le processus
-n'est pas chargé.
+A "Not running in the background" state in that list means the process is not loaded.
 
-## « Impossible de réclamer l'interface »
+## "Cannot claim interface"
 
-Une autre application (ou un ancien driver Hercules) tient l'interface USB. Fermez-la, ou
-désinstallez le driver. Mixxx et d'autres logiciels DJ peuvent aussi réclamer la console.
+Another application (or an old Hercules driver) holds the USB interface. Close it, or uninstall
+the driver. Mixxx and other DJ software can also claim the console.
 
-## La console est détectée mais rien n'arrive dans l'application DJ
+## The console is detected but nothing reaches the DJ application
 
-1. `jog-bridge --dump` : chaque action doit afficher une ligne `USB Δ`. Sinon,
-   vérifiez l'endpoint avec `--list` et essayez `--in 0x81`.
-2. Vérifiez que l'application DJ utilise le port « Hercules MP3 e2 » en entrée **et** en
-   sortie.
-3. Si un message sort sur le mauvais canal ou avec une autre note, consultez
+1. `jog-bridge --dump`: every action must print a `USB Δ` line. If not, check the endpoint with
+   `--list` and try `--in 0x81`.
+2. Check that the DJ application uses the "Hercules MP3 e2" port as both input **and** output.
+3. If a message comes out on the wrong channel or with another note, see
    [midi-mapping.md](midi-mapping.md).
 
-## Les LEDs ne s'allument pas
+## The LEDs do not light up
 
-- L'application doit renvoyer la même note que le bouton, sur le canal 1 (fixe) ou 2
-  (clignotante). Voir [midi-mapping.md](midi-mapping.md).
-- `--dump` affiche `MIDI → LEDs : …` pour chaque message reçu de l'application. S'il
-  n'apparaît rien, l'application n'envoie pas sur la destination « Hercules MP3 e2 ».
-- Un journal `Écriture LED : …` signale une erreur USB.
+- The application must send back the same note as the button, on channel 1 (steady) or 2
+  (blinking). See [midi-mapping.md](midi-mapping.md).
+- `--dump` prints `MIDI → LEDs: …` for every message received from the application. If nothing
+  appears, the application is not sending to the "Hercules MP3 e2" destination.
+- A `LED write: …` log signals a USB error.
 
-## Gatekeeper bloque le .pkg
+## Gatekeeper blocks the .pkg
 
-Le paquet n'est pas signé. Clic droit → *Ouvrir*, ou *Réglages Système → Confidentialité
-et sécurité → Ouvrir quand même*.
+The package is neither signed nor notarised. A downloaded copy (a GitHub release, or the
+artifact of a CI run) is blocked with *"Apple could not verify that … is free of malware"*.
 
-## Signaler un problème
+1. Click **Done** — not *Move to Bin*.
+2. Open *System Settings → Privacy & Security*, scroll to the message about the package and
+   click **Open Anyway** (your password is asked). The button only appears for a short while
+   after the blocked attempt; if it is gone, try to open the package again.
+3. Or, from the Terminal:
 
-Joignez `jog-bridge --list`, la sortie de `--dump` et `/tmp/jog-bridge.log`.
+   ```sh
+   xattr -d com.apple.quarantine ~/Downloads/jog-bridge-X.Y.Z.pkg
+   open ~/Downloads/jog-bridge-X.Y.Z.pkg
+   ```
+
+On recent macOS versions, right-click → *Open* is not enough for an installer package. A package
+built locally (`make pkg`) has no quarantine attribute and opens without a warning. Signing and
+notarising the package would remove this step ([ADR 0006](adr/0006-launchagent-and-unsigned-pkg.md)).
+
+## Reporting a problem
+
+Attach `jog-bridge --list`, the output of `--dump` and `/tmp/jog-bridge.log`.

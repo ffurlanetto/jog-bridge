@@ -4,25 +4,120 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Manual run: builds a .pkg with the version of your choice.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: ".pkg version"
+        default: "0.0.0-dev"
+        required: true
+
+# ── GITHUB ACTIONS SECURITY ──────────────────────────────────────────────────
+# Never interpolate ${{ github.event.* }} directly inside a `run:` block: a PR title or
+# a commit message controlled by a third party would become shell input. Pass it
+# through the environment instead:
+#   env:  PR_TITLE: ${{ github.event.pull_request.title }}
+#   run:  echo "$PR_TITLE"
+# Actions outside `actions/*`: pinned by SHA (AGENTS.md A13).
+# ──────────────────────────────────────────────────────────────────────────────
+
+# A new run cancels the previous one on the same branch / PR.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    runs-on: macos-14
+    # `make` contract (AGENTS.md B4): CI does not need to know the toolchain.
+    # macOS 15: Xcode 16+, which ships Swift Testing.
+    runs-on: macos-15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
       - name: Installer libusb et pkg-config
-        run: brew install libusb pkg-config
+        run: make install
 
-      - name: Compiler
-        run: swift build -c release
-
-      - name: Vérifier l'absence de dépendance dynamique à libusb
-        run: |
-          if otool -L .build/release/jog-bridge | grep -qi libusb; then
-            echo "Le binaire dépend dynamiquement de libusb" >&2
-            exit 1
-          fi
+      # lint + typecheck + test + build + audit
+      - name: Quality gate
+        run: make check
 
       - name: Smoke test
         run: .build/release/jog-bridge --help
+
+  package:
+    name: package (.pkg)
+    # Only builds the package if compilation and tests pass.
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      VERSION: ${{ inputs.version || '0.0.0-ci' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer libusb et pkg-config
+        run: make install
+
+      - name: Build the .pkg
+        run: make pkg VERSION="$VERSION"
+
+      - name: Check the .pkg contents
+        run: |
+          pkg="dist/jog-bridge-$VERSION.pkg"
+          pkgutil --expand "$pkg" "$RUNNER_TEMP/pkg-check"
+          test -x "$RUNNER_TEMP/pkg-check/Scripts/postinstall"
+          test -f "$RUNNER_TEMP/pkg-check/Scripts/local.jog-bridge.plist"
+          # The postinstall must tolerate a launchctl failure (see ADR 0006).
+          grep -q kickstart "$RUNNER_TEMP/pkg-check/Scripts/postinstall"
+          pkgutil --payload-files "$pkg" | grep -q "usr/local/bin/jog-bridge"
+
+      - name: Check that the package's binary is self-contained
+        run: |
+          pkgutil --expand-full "dist/jog-bridge-$VERSION.pkg" "$RUNNER_TEMP/pkg-full"
+          bin=$(find "$RUNNER_TEMP/pkg-full" -type f -name jog-bridge | head -1)
+          test -n "$bin"
+          if otool -L "$bin" | grep -qi libusb; then
+            echo "The .pkg binary depends dynamically on libusb" >&2
+            exit 1
+          fi
+          "$bin" --help > /dev/null
+
+      - name: SHA-256 checksum
+        run: |
+          cd dist
+          shasum -a 256 "jog-bridge-$VERSION.pkg" | tee "jog-bridge-$VERSION.pkg.sha256"
+
+      - name: Upload the .pkg as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jog-bridge-pkg-${{ inputs.version || 'ci' }}
+          path: |
+            dist/jog-bridge-${{ env.VERSION }}.pkg
+            dist/jog-bridge-${{ env.VERSION }}.pkg.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  guardrails:
+    name: guardrails
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: the secret scan must see more than the latest commit.
+          fetch-depth: 0
+
+      - name: Guardrail self-test (hooks)
+        run: make test-hooks
+
+      - name: Scan de secrets
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,8 +1,8 @@
 import CoreMIDI
 import Foundation
 
-/// Expose une paire de ports MIDI virtuels (entrée + sortie) visibles par
-/// n'importe quelle application macOS (djay, rekordbox, Serato, Ableton…).
+/// Exposes a pair of virtual MIDI ports (input + output) visible to
+/// any macOS application (djay, rekordbox, Serato, Ableton…).
 final class VirtualMIDIPorts {
     private var client = MIDIClientRef()
     private var source = MIDIEndpointRef()
@@ -10,7 +10,7 @@ final class VirtualMIDIPorts {
     private let packetBuffer: UnsafeMutableRawPointer
     private let packetBufferSize = 1024
 
-    // IDs fixes : l'application DJ retrouve son mapping après un redémarrage.
+    // Fixed IDs: the DJ application finds its mapping again after a restart.
     private static let sourceUniqueID: MIDIUniqueID = 0x4845_5231      // "HER1"
     private static let destinationUniqueID: MIDIUniqueID = 0x4845_5232 // "HER2"
 
@@ -21,13 +21,13 @@ final class VirtualMIDIPorts {
         var st = MIDIClientCreateWithBlock(name as CFString, &client) { _ in }
         guard st == noErr else { throw BridgeError.midi("MIDIClientCreate", st) }
 
-        // Source virtuelle : la console → l'application.
+        // Virtual source: console → application.
         st = MIDISourceCreate(client, name as CFString, &source)
         guard st == noErr else { throw BridgeError.midi("MIDISourceCreate", st) }
         MIDIObjectSetIntegerProperty(source, kMIDIPropertyUniqueID, Self.sourceUniqueID)
         MIDIObjectSetStringProperty(source, kMIDIPropertyManufacturer, "Hercules" as CFString)
 
-        // Destination virtuelle : l'application → la console (LEDs).
+        // Virtual destination: application → console (LEDs).
         st = MIDIDestinationCreateWithBlock(client, name as CFString, &destination) { list, _ in
             let dataOffset = MemoryLayout<MIDIPacket>.offset(of: \MIDIPacket.data)!
             for packet in list.unsafeSequence() {
@@ -42,7 +42,7 @@ final class VirtualMIDIPorts {
         MIDIObjectSetStringProperty(destination, kMIDIPropertyManufacturer, "Hercules" as CFString)
     }
 
-    /// Publie un message MIDI complet sur la source virtuelle.
+    /// Publishes one complete MIDI message on the virtual source.
     func send(_ bytes: [UInt8]) {
         let list = packetBuffer.assumingMemoryBound(to: MIDIPacketList.self)
         var packet = MIDIPacketListInit(list)

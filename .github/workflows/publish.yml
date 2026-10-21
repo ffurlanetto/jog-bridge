@@ -1,0 +1,53 @@
+name: Publish
+
+# Triggered by pushing a vX.Y.Z tag. Creates a **draft** release: nothing is published
+# until you validate it by hand on GitHub.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Installer libusb et pkg-config
+        run: make install
+
+      # Same gate as CI: never publish a package built from a red state.
+      - name: Quality gate
+        run: make check
+
+      - name: Build the .pkg
+        run: make pkg VERSION="$VERSION"
+
+      - name: SHA-256 checksum
+        run: |
+          cd dist
+          shasum -a 256 "jog-bridge-$VERSION.pkg" | tee "jog-bridge-$VERSION.pkg.sha256"
+
+      - name: Prepare the release notes
+        run: |
+          sha=$(cut -d' ' -f1 "dist/jog-bridge-$VERSION.pkg.sha256")
+          sed -e "s/X\.Y\.Z/$VERSION/g" -e "s/<SHA-256>/$sha/" \
+            .github/RELEASE_TEMPLATE.md > "$RUNNER_TEMP/notes.md"
+
+      - name: Create the release (draft)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/jog-bridge-$VERSION.pkg" \
+            "dist/jog-bridge-$VERSION.pkg.sha256" \
+            --draft \
+            --title "jog-bridge $VERSION" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            --generate-notes

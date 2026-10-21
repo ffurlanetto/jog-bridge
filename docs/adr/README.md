@@ -1,20 +1,21 @@
-# Décisions d'architecture (ADR)
+# Architecture Decision Records (ADR)
 
-Chaque décision structurante est consignée dans un fichier numéroté, qu'on ne réécrit pas :
-si une décision change, on ajoute un nouvel ADR qui remplace l'ancien (statut « Remplacé
-par »). Gabarit : [template.md](template.md).
+Every structural decision is recorded in a numbered file that is not rewritten: if a decision
+changes, a new ADR is added that replaces the old one (status "Superseded by"). Template:
+[template.md](template.md).
 
-| N° | Titre | Statut |
+| No. | Title | Status |
 |---|---|---|
-| [0001](0001-consigner-les-decisions.md) | Consigner les décisions d'architecture | Acceptée |
-| [0002](0002-libusb-en-espace-utilisateur.md) | Accès USB par libusb en espace utilisateur | Acceptée |
-| [0003](0003-ports-midi-virtuels-coremidi.md) | Ports MIDI virtuels CoreMIDI à identifiants fixes | Acceptée |
-| [0004](0004-liaison-statique-de-libusb.md) | Liaison statique de libusb | Acceptée |
-| [0005](0005-leds-par-transferts-de-controle.md) | LEDs pilotées par transferts de contrôle | Acceptée |
-| [0006](0006-launchagent-et-pkg-non-signe.md) | LaunchAgent et installeur `.pkg` non signé | Acceptée |
-| [0007](0007-decodage-par-difference-de-trames.md) | Décodage des trames par différence | Acceptée |
-| [0008](0008-nom-du-projet-et-marques-tierces.md) | Nom du projet et marques tierces | Acceptée |
+| [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
+| [0002](0002-userspace-usb-access-with-libusb.md) | Userspace USB access with libusb | Accepted |
+| [0003](0003-virtual-coremidi-ports-with-fixed-ids.md) | Virtual CoreMIDI ports with fixed identifiers | Accepted |
+| [0004](0004-static-linking-of-libusb.md) | Static linking of libusb | Accepted |
+| [0005](0005-leds-via-control-transfers.md) | LEDs driven by control transfers | Accepted |
+| [0006](0006-launchagent-and-unsigned-pkg.md) | LaunchAgent and unsigned `.pkg` installer | Accepted |
+| [0007](0007-frame-diff-decoding.md) | Frame decoding by difference | Accepted |
+| [0008](0008-project-name-and-third-party-trademarks.md) | Project name and third-party trademarks | Accepted |
+| [0009](0009-guardrails-enforced-outside-the-model.md) | Guardrails enforced outside the model: secrets and tests | Accepted |
+| [0010](0010-delivery-flow.md) | Delivery flow: branch, draft, wait for CI | Accepted |
 
-> Les ADR 0002 à 0008 ont été rédigés a posteriori à partir du code et de l'historique du
-> projet. Leur contexte et leurs conséquences sont reconstitués ; corrigez-les si une
-> motivation d'origine diffère.
+> ADRs 0002 to 0010 were written after the fact from the code and the project history. Their
+> context and consequences are reconstructed; correct them if an original motivation differs.

@@ -4,114 +4,121 @@
 
 <p align="center">
   <a href="https://github.com/ffurlanetto/jog-bridge/actions/workflows/ci.yml"><img src="https://github.com/ffurlanetto/jog-bridge/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-blue" alt="Licence MIT"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-blue" alt="MIT licence"></a>
   <img src="https://img.shields.io/badge/macOS-12%2B-lightgrey" alt="macOS 12+">
   <img src="https://img.shields.io/badge/Swift-5.9-orange" alt="Swift 5.9">
 </p>
 
 # jog-bridge
 
-**Passerelle USB → MIDI pour contrôleurs DJ sur macOS.** Branchez la console, ouvrez votre
-logiciel DJ : elle apparaît comme un périphérique MIDI, LEDs comprises.
+**USB-to-MIDI bridge for DJ controllers on macOS.** Plug in the console, open your DJ software:
+it shows up as a MIDI device, LEDs included.
 
-Aujourd'hui, **jog-bridge** prend en charge la **Hercules DJ Control MP3 e2**.
+Today, **jog-bridge** supports the **Hercules DJ Control MP3 e2**.
 
-La console n'est pas un périphérique MIDI standard : elle expose une interface USB
-« vendor specific » (classe `0xFF`) et envoie en continu des trames d'état de 38 octets
-sur un endpoint bulk. Ce petit démon lit ces trames avec libusb, les convertit en
-messages MIDI et les publie sur un port **MIDI virtuel « Hercules MP3 e2 »** visible par
-n'importe quelle application (djay, rekordbox, Serato…). Le sens inverse fonctionne
-aussi : les messages MIDI renvoyés par l'application allument les LEDs de la console.
+The console is not a standard MIDI device: it exposes a "vendor specific" USB interface
+(class `0xFF`) and continuously sends 38-byte state frames on a bulk endpoint. This small daemon
+reads those frames with libusb, converts them to MIDI messages and publishes them on a
+**virtual MIDI port "Hercules MP3 e2"** visible to any application (djay, rekordbox, Serato…).
+The reverse direction works too: MIDI messages sent back by the application light the console's
+LEDs.
 
-Aucune extension noyau, aucun DriverKit, aucun droit administrateur à l'usage.
+No kernel extension, no DriverKit, no administrator rights at runtime.
 
-> **jog-bridge est un projet indépendant, non affilié à Guillemot Corporation ni à
-> Hercules, et ni approuvé ni sponsorisé par eux.** Le protocole USB a été établi par
-> rétro-ingénierie (voir [Crédits](#crédits) et [Marques](#marques)).
+> **jog-bridge is an independent project, not affiliated with Guillemot Corporation or Hercules,
+> and neither approved nor sponsored by them.** The USB protocol was established by reverse
+> engineering (see [Credits](#credits) and [Trademarks](#trademarks)).
 
-## Fonctionnalités
+## Features
 
-- Boutons → notes MIDI, potentiomètres / faders / encodeurs → Control Change.
-- LEDs pilotables depuis l'application DJ (fixes et clignotantes).
-- Reconnexion automatique quand on branche ou débranche la console.
-- Démarrage automatique à l'ouverture de session (LaunchAgent).
-- Binaire autonome : libusb est lié statiquement.
-- Mapping djay prêt à l'emploi : [`Hercules MP3 e2.djayMidiMapping`](Hercules%20MP3%20e2.djayMidiMapping).
+- Buttons → MIDI notes, knobs / faders / encoders → Control Change.
+- LEDs driven from the DJ application (steady and blinking).
+- Automatic reconnection when the console is plugged or unplugged.
+- Automatic start at login (LaunchAgent).
+- Self-contained binary: libusb is statically linked.
+- Ready-made djay mapping: [`Hercules MP3 e2.djayMidiMapping`](Hercules%20MP3%20e2.djayMidiMapping).
 
-## 1. Prérequis
+## 1. Prerequisites
 
 ```sh
-xcode-select --install          # outils de compilation Swift
+xcode-select --install          # Swift build tools
 brew install libusb pkg-config
 ```
 
-macOS 12 ou plus récent. Homebrew n'est nécessaire que sur la machine qui compile.
+macOS 12 or later. Homebrew is only needed on the machine that builds.
 
-> Si un ancien driver Hercules a été installé sur ce Mac, désinstallez-le : il
-> s'approprie l'interface USB et la passerelle ne pourra pas la réclamer.
+> If an old Hercules driver was installed on this Mac, uninstall it: it takes over the USB
+> interface and the bridge will not be able to claim it.
 
-## 2. Compiler
+## 2. Build
 
 ```sh
 swift build -c release
 ```
 
-Le binaire est dans `.build/release/jog-bridge`.
+The binary is in `.build/release/jog-bridge`.
 
-## 3. Vérifier la console (première fois)
+## 3. Check the console (first time)
 
-Branchez la console, puis :
+Plug in the console, then:
 
 ```sh
 .build/release/jog-bridge --list
 ```
 
-On attend un périphérique `06F8:B105`. Sur une MP3 e2, l'interface 0 expose un endpoint
-**IN bulk `0x81`** (c'est lui qui porte les trames d'état) ; l'interface 1 expose
-`0x82` / `0x03`, inutilisables tels quels (voir [protocole USB](docs/usb-protocol.md)).
-La passerelle détecte l'endpoint seule ; si la détection se trompe, forcez-le avec
-`--in 0x81`.
+A `06F8:B105` device is expected. On an MP3 e2, interface 0 exposes a **bulk IN endpoint
+`0x81`** (the one that carries the state frames); interface 1 exposes `0x82` / `0x03`, which are
+unusable as is (see the [USB protocol](docs/usb-protocol.md)). The bridge detects the endpoint
+by itself; if detection gets it wrong, force it with `--in 0x81`.
 
-Puis testez en direct :
+Then test live:
 
 ```sh
 .build/release/jog-bridge --dump
 ```
 
-Bougez le crossfader, appuyez sur Play : chaque action affiche les octets qui ont changé
-dans la trame USB et le message MIDI correspondant. **Ctrl-C** pour arrêter.
+Move the crossfader, press Play: every action prints the bytes that changed in the USB frame and
+the matching MIDI message. **Ctrl-C** to stop.
 
-Pour un contrôle indépendant, l'utilitaire *Configuration audio et MIDI* de macOS
-(Fenêtre → Afficher le studio MIDI) doit montrer le port « Hercules MP3 e2 » tant
-que la passerelle tourne.
+For an independent check, macOS's *Audio MIDI Setup* utility (Window → Show MIDI Studio) must
+show the "Hercules MP3 e2" port while the bridge is running.
 
-## 4. Installer en démarrage automatique
+## 4. Install for automatic start
 
-### Via le .pkg (recommandé)
+### With the .pkg (recommended)
 
 ```sh
-./scripts/build-pkg.sh 1.0.0        # produit dist/jog-bridge-1.0.0.pkg
+./scripts/build-pkg.sh 1.0.0        # produces dist/jog-bridge-1.0.0.pkg
 open dist/jog-bridge-1.0.0.pkg
 ```
 
-Le `.pkg` n'est pas signé par un Developer ID : Gatekeeper le bloquera au premier
-double-clic (« développeur non identifié »). Clic droit → *Ouvrir*, ou *Réglages
-Système → Confidentialité et sécurité → Ouvrir quand même*.
+The `.pkg` is neither signed nor notarised, so Gatekeeper blocks a **downloaded** copy on first
+double-click ("Apple could not verify that … is free of malware"). Do not click *Move to Bin*;
+click *Done*, then open *System Settings → Privacy & Security* and click **Open Anyway** for the
+package, or remove the quarantine attribute from the Terminal:
 
-L'installation copie le binaire dans `/usr/local/bin/`, installe le LaunchAgent dans
-`~/Library/LaunchAgents/` et le démarre immédiatement.
+```sh
+xattr -d com.apple.quarantine ~/Downloads/jog-bridge-1.0.0.pkg
+open ~/Downloads/jog-bridge-1.0.0.pkg
+```
 
-**Autorisation en arrière-plan.** Au premier démarrage, macOS demande d'autoriser
-l'élément `jog-bridge`. Vérifiez qu'il est activé dans *Réglages Système →
-Général → Ouverture et extensions → Autoriser en arrière-plan*. Tant qu'il est
-désactivé, launchd refuse de charger l'agent (`Bootstrap failed: 5: Input/output error`).
-Une fois activé, déconnectez-vous / reconnectez-vous, ou chargez l'agent à la main :
+A package you build yourself with `./scripts/build-pkg.sh` carries no quarantine attribute and
+opens without a warning.
+
+The installation copies the binary to `/usr/local/bin/`, installs the LaunchAgent in
+`~/Library/LaunchAgents/` and starts it immediately.
+
+**Background permission.** On first start, macOS asks you to allow the `jog-bridge` item. Check
+that it is enabled in *System Settings → General → Login Items & Extensions → Allow in the
+Background*. As long as it is disabled, launchd refuses to load the agent
+(`Bootstrap failed: 5: Input/output error`). Once enabled, log out and back in, or load the
+agent by hand:
 
 ```sh
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.jog-bridge.plist
 ```
 
-### Manuellement
+### Manually
 
 ```sh
 sudo install -m 755 .build/release/jog-bridge /usr/local/bin/
@@ -119,14 +126,14 @@ cp local.jog-bridge.plist ~/Library/LaunchAgents/
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.jog-bridge.plist
 ```
 
-Vérifier que le service tourne :
+Check that the service is running:
 
 ```sh
 launchctl print gui/$(id -u)/local.jog-bridge | grep -E "state|pid|runs|last exit"
 tail -f /tmp/jog-bridge.log
 ```
 
-### Désinstaller
+### Uninstall
 
 ```sh
 launchctl bootout gui/$(id -u)/local.jog-bridge
@@ -134,72 +141,69 @@ rm ~/Library/LaunchAgents/local.jog-bridge.plist
 sudo rm /usr/local/bin/jog-bridge
 ```
 
-## 5. Dans le logiciel DJ
+## 5. In the DJ software
 
-Sélectionnez le contrôleur « Hercules MP3 e2 » (entrée et sortie) dans les réglages MIDI,
-puis soit utilisez le mapping djay fourni, soit le **MIDI Learn** pour associer chaque
-bouton. Les identifiants des ports sont fixes : le mapping est conservé d'une session à
-l'autre. La table complète des notes et des CC est dans
+Select the "Hercules MP3 e2" controller (input and output) in the MIDI settings, then either use
+the shipped djay mapping or **MIDI Learn** to bind each button. The port identifiers are fixed:
+the mapping is kept from one session to the next. The full table of notes and CCs is in
 [docs/midi-mapping.md](docs/midi-mapping.md).
 
 ## Options
 
-| Option | Rôle |
+| Option | Purpose |
 |---|---|
-| `--list` | Liste les périphériques Hercules et leurs endpoints |
-| `--dump` | Affiche les changements d'état de la console et les messages MIDI échangés |
-| `--name <nom>` | Renomme les ports MIDI virtuels |
-| `--pid <hex>` | Autre Product ID (MP3 LE, Glow…) — non testé |
-| `--interface <n>` | Interface USB à réclamer (défaut 0) |
-| `--in <hex>` | Force l'endpoint d'entrée (ex. `0x81`) |
-| `--help` | Affiche l'aide |
+| `--list` | List Hercules devices and their endpoints |
+| `--dump` | Print console state changes and the MIDI messages exchanged |
+| `--name <name>` | Rename the virtual MIDI ports |
+| `--pid <hex>` | Another product ID (MP3 LE, Glow…) — untested |
+| `--interface <n>` | USB interface (default 0) |
+| `--in <hex>` | Force the input endpoint (e.g. `0x81`) |
+| `--help` | Show the help |
 
-## Dépannage
+## Troubleshooting
 
-- **« Impossible de réclamer l'interface »** : un driver Hercules est encore installé,
-  ou une autre application (Mixxx) tient déjà la console. Fermez-la.
-- **Rien dans `--dump`** : vérifiez l'endpoint avec `--list`, essayez `--in 0x81`.
-- **L'agent ne démarre pas après l'installation** : voir l'autorisation en arrière-plan
-  ci-dessus.
+- **"Cannot claim interface"**: a Hercules driver is still installed, or another application
+  (Mixxx) already holds the console. Close it.
+- **Nothing in `--dump`**: check the endpoint with `--list`, try `--in 0x81`.
+- **The agent does not start after installation**: see the background permission above.
 
-Plus de détails dans [docs/troubleshooting.md](docs/troubleshooting.md).
+More details in [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Documentation
 
 - [Architecture](docs/architecture.md)
-- [Protocole USB](docs/usb-protocol.md)
-- [Mapping MIDI et LEDs](docs/midi-mapping.md)
-- [Développement](docs/development.md)
-- [Dépannage](docs/troubleshooting.md)
-- [Identité et marques](docs/branding.md)
-- [Décisions d'architecture (ADR)](docs/adr/README.md)
-- [Contribuer](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Sécurité](SECURITY.md)
+- [USB protocol](docs/usb-protocol.md)
+- [MIDI and LED mapping](docs/midi-mapping.md)
+- [Development](docs/development.md) · [Tests](docs/testing.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Identity and trademarks](docs/branding.md)
+- [Architecture decisions (ADR)](docs/adr/README.md)
+- [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
 
-## Limites
+## Limits
 
-- macOS uniquement. Un portage iPadOS n'est pas possible tel quel : voir
-  [ADR 0002](docs/adr/0002-libusb-en-espace-utilisateur.md).
-- Seule la MP3 e2 (`06F8:B105`) a été testée.
+- macOS only. An iPadOS port is not possible as is: see
+  [ADR 0002](docs/adr/0002-userspace-usb-access-with-libusb.md).
+- Only the MP3 e2 (`06F8:B105`) has been tested.
 
-## Crédits
+## Credits
 
-La séquence d'initialisation et la table des LEDs viennent des travaux de
-rétro-ingénierie de [foomatic/djcontrol](https://github.com/foomatic/djcontrol)
-(`Protocol.txt`, `djcontrol.py`).
+The initialisation sequence and the LED table come from the reverse-engineering work of
+[foomatic/djcontrol](https://github.com/foomatic/djcontrol) (`Protocol.txt`, `djcontrol.py`).
 
-## Marques
+## Trademarks
 
-Hercules est une marque de Guillemot Corporation. djay, rekordbox, Serato, Mixxx, macOS,
-CoreMIDI et les autres noms cités appartiennent à leurs propriétaires respectifs. Ils ne
-sont employés que pour indiquer la compatibilité (« fonctionne avec ») : ce projet n'a
-aucun lien avec ces sociétés. Les éléments visuels de jog-bridge (`assets/branding/`) sont
-originaux et ne reprennent aucun logo de tiers. Voir [docs/branding.md](docs/branding.md).
+Hercules is a trademark of Guillemot Corporation. djay, rekordbox, Serato, Mixxx, macOS,
+CoreMIDI and the other names cited belong to their respective owners. They are only used to
+indicate compatibility ("works with"): this project has no connection with those companies.
+jog-bridge's visual elements (`assets/branding/`) are original and reuse no third-party logo.
+See [docs/branding.md](docs/branding.md).
 
 ## Licences
 
-Code du projet : [MIT](LICENSE).
+Project code: [MIT](LICENSE).
 
-Le binaire distribué dans le `.pkg` embarque [libusb](https://libusb.info), sous licence
-**LGPL 2.1**, lié statiquement. Le code source du projet et les scripts de build étant
-publics, le binaire peut être relié avec une autre version de libusb (voir
-[ADR 0004](docs/adr/0004-liaison-statique-de-libusb.md)).
+The binary distributed in the `.pkg` embeds [libusb](https://libusb.info), under the
+**LGPL 2.1**, statically linked. Since the project's source code and build scripts are public,
+the binary can be relinked with another version of libusb (see
+[ADR 0004](docs/adr/0004-static-linking-of-libusb.md)).

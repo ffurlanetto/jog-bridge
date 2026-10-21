@@ -1,27 +1,27 @@
-# Mapping MIDI et LEDs
+# MIDI and LED mapping
 
-Tout est sur le **canal MIDI 1** côté console → application. Les numéros sont déterminés
-par la position dans la trame USB de 38 octets ([protocole](usb-protocol.md)) ; ils sont
-donc stables et ne dépendent pas d'un fichier de configuration.
+Everything is on **MIDI channel 1** in the console → application direction. The numbers are
+determined by the position in the 38-byte USB frame ([protocol](usb-protocol.md)); they are
+therefore stable and do not depend on a configuration file.
 
 ## Console → application
 
 | Source | Message |
 |---|---|
-| Bouton (octet `n`, bit `b`, avec `n` de 0 à 5) | Note `n × 8 + b` : Note On vélocité 127 à l'appui, Note Off vélocité 0 au relâchement |
-| Contrôle analogique (octet `n`, avec `n` de 6 à 18) | CC numéro `n`, valeur = octet ÷ 2 (0…127) |
+| Button (byte `n`, bit `b`, with `n` from 0 to 5) | Note `n × 8 + b`: Note On velocity 127 on press, Note Off velocity 0 on release |
+| Analog control (byte `n`, with `n` from 6 to 18) | CC number `n`, value = byte ÷ 2 (0…127) |
 
-Un CC n'est émis que si la valeur sur 7 bits change. La première trame reçue après une
-connexion fixe l'état initial et n'émet rien.
+A CC is only emitted when the 7-bit value changes. The first frame received after a connection
+sets the initial state and emits nothing.
 
-Les CC 6 à 18 correspondent aux 13 contrôles analogiques ; pour savoir lequel est lequel,
-lancez `jog-bridge --dump` et bougez-les un par un.
+CC 6 to 18 correspond to the 13 analog controls; to find out which is which, run
+`jog-bridge --dump` and move them one at a time.
 
-### Boutons connus
+### Known buttons
 
-Les boutons qui ont une LED ont un nom (issu de la table de djcontrol) :
+Buttons that have a LED have a name (from the djcontrol table):
 
-| Note | Bouton | Note | Bouton | Note | Bouton |
+| Note | Button | Note | Button | Note | Button |
 |---|---|---|---|---|---|
 | 8 | Listen A | 16 | Listen B | 32 | Magic |
 | 9 | CUE A | 17 | CUE B | 36 | Vinyl |
@@ -30,36 +30,36 @@ Les boutons qui ont une LED ont un nom (issu de la table de djcontrol) :
 | 2 | Pitch Bend + A | 26 | Pitch Bend + B | | |
 | 37 | Sync A | 35 | Sync B | | |
 | 39 | Pitch Reset A | 33 | Pitch Reset B | | |
-| 38, 4, 5, 6 | N1 à N4 A | 34, 20, 21, 22 | N1 à N4 B | | |
-| 40, 41, 42, 43 | N5 à N8 A | 44, 45, 46, 47 | N5 à N8 B | | |
+| 38, 4, 5, 6 | N1 to N4 A | 34, 20, 21, 22 | N1 to N4 B | | |
+| 40, 41, 42, 43 | N5 to N8 A | 44, 45, 46, 47 | N5 to N8 B | | |
 
-Les autres bits des octets 0 à 5 (boutons sans LED, comme les touches de navigation) émettent
-bien des notes, mais ne sont pas nommés ici : utilisez `--dump`.
+The other bits of bytes 0 to 5 (buttons without a LED, such as the navigation keys) do emit
+notes, but are not named here: use `--dump`.
 
 ## Application → console (LEDs)
 
-Une LED porte **le même numéro de note** que son bouton. Une application qui renvoie
-l'état d'un bouton sur la même note allume donc la bonne LED.
+A LED uses **the same note number** as its button. An application that echoes a button's
+state back on the same note therefore lights the right LED.
 
-| Canal | Effet |
+| Channel | Effect |
 |---|---|
-| 1 | LED **fixe** : Note On vélocité > 0 = allumée ; Note Off ou vélocité 0 = éteinte |
-| 2 | LED **clignotante** : même principe |
+| 1 | **Steady** LED: Note On velocity > 0 = lit; Note Off or velocity 0 = unlit |
+| 2 | **Blinking** LED: same principle |
 
-Les autres canaux, les autres types de message et les notes sans LED sont ignorés.
+Other channels, other message types and notes without a LED are ignored.
 
-## Ports virtuels
+## Virtual ports
 
-| Port | Sens | Identifiant unique |
+| Port | Direction | Unique identifier |
 |---|---|---|
-| « Hercules MP3 e2 » (source) | console → application | `0x48455231` (« HER1 ») |
-| « Hercules MP3 e2 » (destination) | application → console | `0x48455232` (« HER2 ») |
+| "Hercules MP3 e2" (source) | console → application | `0x48455231` ("HER1") |
+| "Hercules MP3 e2" (destination) | application → console | `0x48455232` ("HER2") |
 
-Le nom se change avec `--name`. Les identifiants sont fixes pour que l'application DJ
-retrouve son mapping d'une session à l'autre.
+The name can be changed with `--name`. The identifiers are fixed so that the DJ application
+finds its mapping again from one session to the next.
 
-## Mapping djay
+## djay mapping
 
-[`Hercules MP3 e2.djayMidiMapping`](../Hercules%20MP3%20e2.djayMidiMapping) associe ces
-notes et CC aux commandes de djay. Il utilise les mêmes numéros que ci-dessus (par
-exemple `turntable1.playPause` ↔ note 10, soit Play A).
+[`Hercules MP3 e2.djayMidiMapping`](../Hercules%20MP3%20e2.djayMidiMapping) binds these notes
+and CCs to djay's commands. It uses the same numbers as above (for example
+`turntable1.playPause` ↔ note 10, i.e. Play A).

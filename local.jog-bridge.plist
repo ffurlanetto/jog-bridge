@@ -12,7 +12,7 @@
     <true/>
     <key>KeepAlive</key>
     <true/>
-    <!-- Priorité interactive : latence minimale pour les jog wheels -->
+    <!-- Interactive priority: minimal latency for the jog wheels -->
     <key>ProcessType</key>
     <string>Interactive</string>
     <key>StandardErrorPath</key>

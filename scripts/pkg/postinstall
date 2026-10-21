@@ -12,13 +12,13 @@ mkdir -p "$LAUNCH_AGENTS_DIR"
 cp "$SCRIPT_DIR/local.jog-bridge.plist" "$PLIST_DEST"
 chown "$CONSOLE_USER" "$PLIST_DEST"
 
-# Relance propre si une version précédente tournait déjà.
+# Clean restart if a previous version was already running.
 launchctl bootout "gui/$CONSOLE_UID/local.jog-bridge" >/dev/null 2>&1 || true
 
-# bootout est asynchrone : bootstrap peut échouer (erreur 5) si le service est
-# encore en cours de déchargement. On réessaie, puis on force le démarrage.
-# Un échec ici ne doit jamais faire échouer l'installation : les fichiers sont
-# déjà en place et l'agent démarrera à la prochaine ouverture de session.
+# bootout is asynchronous: bootstrap can fail (error 5) while the service is still
+# unloading. Retry, then force the start.
+# A failure here must never fail the installation: the files are already in place
+# and the agent will start at the next login.
 for _ in 1 2 3 4 5; do
     if launchctl bootstrap "gui/$CONSOLE_UID" "$PLIST_DEST" >/dev/null 2>&1; then
         break

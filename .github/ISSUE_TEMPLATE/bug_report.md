@@ -1,22 +1,22 @@
 ---
 name: Bug
-about: Quelque chose ne fonctionne pas
+about: Something does not work
 labels: bug
 ---
 
-## Problème
+## Problem
 
-<!-- Ce qui se passe, ce que vous attendiez. -->
+<!-- What happens, what you expected. -->
 
-## Environnement
+## Environment
 
-- macOS :
-- Puce (Apple Silicon / Intel) :
-- Version de jog-bridge :
-- Installation (pkg / manuelle) :
-- Application DJ :
+- macOS:
+- Chip (Apple Silicon / Intel):
+- jog-bridge version:
+- Installation (pkg / manual):
+- DJ application:
 
-## Diagnostic
+## Diagnosis
 
 ```
 jog-bridge --list
@@ -30,4 +30,4 @@ launchctl print gui/$(id -u)/local.jog-bridge | grep -E "state|pid|runs|last exi
 tail -50 /tmp/jog-bridge.log
 ```
 
-<!-- Si le problème concerne les entrées/LEDs, ajoutez la sortie de `jog-bridge --dump`. -->
+<!-- If the problem concerns inputs/LEDs, add the output of `jog-bridge --dump`. -->

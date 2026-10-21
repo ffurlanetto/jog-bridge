@@ -1,83 +1,77 @@
-# Identité et usage de la marque
+# Identity and use of the brand
 
-## Nom
+## Name
 
-**jog-bridge** (en minuscules, avec le trait d'union). Le nom évoque les jog wheels des
-contrôleurs DJ et ne cite aucune marque : le projet n'est pas lié à un seul modèle. Voir
-[ADR 0008](adr/0008-nom-du-projet-et-marques-tierces.md).
+**jog-bridge** (lowercase, with the hyphen). The name evokes the jog wheels of DJ controllers
+and cites no trademark: the project is not tied to a single model. See
+[ADR 0008](adr/0008-project-name-and-third-party-trademarks.md).
 
-## Textes
+## Texts
 
-| Usage | Texte |
+| Use | Text |
 |---|---|
 | Tagline | USB-to-MIDI bridge for DJ controllers on macOS |
-| Description GitHub | USB-to-MIDI bridge for DJ controllers on macOS. Exposes the Hercules DJ Control MP3 e2 as a CoreMIDI device, LEDs included. |
-| Présentation (FR) | Passerelle USB → MIDI pour contrôleurs DJ sur macOS. |
-| Topics GitHub | `dj`, `midi`, `coremidi`, `macos`, `usb`, `libusb`, `swift`, `dj-controller`, `hercules`, `launchagent` |
+| GitHub description | USB-to-MIDI bridge for DJ controllers on macOS. Exposes the Hercules DJ Control MP3 e2 as a CoreMIDI device, LEDs included. |
+| GitHub topics | `dj`, `midi`, `coremidi`, `macos`, `usb`, `libusb`, `swift`, `dj-controller`, `hercules`, `launchagent` |
 
-Les textes GitHub sont en anglais pour être trouvables ; le README et les docs restent en
-français comme le code.
+## Non-affiliation notice
 
-## Mention de non-affiliation
+> jog-bridge is an independent project, not affiliated with Guillemot Corporation or Hercules,
+> and neither approved nor sponsored by them. Hercules is a trademark of Guillemot Corporation.
 
-> jog-bridge est un projet indépendant, non affilié à Guillemot Corporation ni à Hercules,
-> et ni approuvé ni sponsorisé par eux. Hercules est une marque de Guillemot Corporation.
+Reuse it verbatim in the README, the release notes and any presentation page.
 
-À reprendre telle quelle dans le README, les notes de release et toute page de présentation.
+## Rules for using third-party trademarks
 
-## Règles d'usage des marques tierces
+- Citing "Hercules DJ Control MP3 e2" to **describe compatibility** (supported hardware, MIDI
+  port names, mapping file): yes.
+- Naming the repository, the binary, the package or the logo after the trademark: no.
+- Reusing a third party's logo, image or product photo: no.
+- Suggesting a partnership or an endorsement: no.
 
-- Citer « Hercules DJ Control MP3 e2 » pour **décrire la compatibilité** (matériel supporté,
-  nom des ports MIDI, fichier de mapping) : oui.
-- Nommer le dépôt, le binaire, le paquet ou le logo d'après la marque : non.
-- Reprendre un logo, une image ou une photo produit d'un tiers : non.
-- Suggérer un partenariat ou une approbation : non.
+The `hercules` topic is used for discovery (supported hardware); it can be removed if
+Guillemot asks. This is not legal advice.
 
-Le topic `hercules` sert à la découverte (matériel supporté) ; il peut être retiré si
-Guillemot en fait la demande. Ceci n'est pas un avis juridique.
+## Visual elements
 
-## Éléments visuels
+All in `assets/branding/`; they are original and published under the project's licence.
 
-Tous dans `assets/branding/` ; ils sont originaux et publiés sous la licence du projet.
-
-| Fichier | Usage |
+| File | Use |
 |---|---|
-| `logo.svg` / `logo.png` (512×512) | Icône du projet |
-| `banner.svg` | En-tête du README |
-| `social-preview.svg` / `social-preview.png` (1280×640) | Image de prévisualisation sociale GitHub |
+| `logo.svg` / `logo.png` (512×512) | Project icon |
+| `banner.svg` | README header |
+| `social-preview.svg` / `social-preview.png` (1280×640) | GitHub social preview image |
 
-Le logo représente un plateau de jog wheel (anneau cyan, repère magenta) traversé par une
-arche de pont reliant deux points : USB d'un côté, MIDI de l'autre.
+The logo shows a jog-wheel platter (cyan ring, magenta marker) crossed by a bridge arch linking
+two dots: USB on one side, MIDI on the other.
 
 ### Palette
 
-| Rôle | Couleur |
+| Role | Colour |
 |---|---|
-| Fond | `#0B1220` (dégradé vers `#12223D`) |
-| Plateau | `#111C33` |
-| Accent principal | `#22D3EE` |
-| Repère | `#F472B6` |
-| Texte | `#F8FAFC`, secondaire `#CBD5E1` / `#94A3B8` |
+| Background | `#0B1220` (gradient towards `#12223D`) |
+| Platter | `#111C33` |
+| Main accent | `#22D3EE` |
+| Marker | `#F472B6` |
+| Text | `#F8FAFC`, secondary `#CBD5E1` / `#94A3B8` |
 
-Les SVG utilisent une pile de polices système ; le rendu du texte varie légèrement selon la
-plateforme. Les PNG sont des rendus de référence.
+The SVGs use a system font stack; text rendering varies slightly between platforms. The PNGs are
+reference renders.
 
-### Régénérer les PNG
+### Regenerating the PNGs
 
-Après modification d'un SVG, rendre à la taille exacte avec un script AppKit (macOS) :
+After changing an SVG, render at the exact size with an AppKit script (macOS):
 
 ```sh
 swift render.swift social-preview.svg social-preview.png 1280 640
 swift render.swift logo.svg logo.png 512 512
 ```
 
-où `render.swift` charge le SVG dans un `NSImage`, le dessine dans un `NSBitmapImageRep` de
-la taille voulue et écrit le PNG. (`qlmanage -t` ne convient pas : il produit des vignettes
-carrées recadrées.)
+where `render.swift` loads the SVG into an `NSImage`, draws it into an `NSBitmapImageRep` of
+the wanted size and writes the PNG. (`qlmanage -t` is not suitable: it produces cropped square
+thumbnails.)
 
-## Configurer le dépôt GitHub
-
-Après création du dépôt :
+## Configuring the GitHub repository
 
 ```sh
 gh repo edit --description "USB-to-MIDI bridge for DJ controllers on macOS. Exposes the Hercules DJ Control MP3 e2 as a CoreMIDI device, LEDs included." \
@@ -86,5 +80,5 @@ gh repo edit --description "USB-to-MIDI bridge for DJ controllers on macOS. Expo
   --add-topic launchagent
 ```
 
-L'image de prévisualisation sociale ne se définit pas par l'API : *Settings → General →
-Social preview → Upload an image* avec `assets/branding/social-preview.png`.
+The social preview image cannot be set through the API: *Settings → General → Social preview →
+Upload an image* with `assets/branding/social-preview.png`.

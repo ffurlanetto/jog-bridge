@@ -1,28 +1,28 @@
 import Foundation
 
-/// Configuration de la passerelle (valeurs par défaut = Hercules DJ Control MP3 e2).
+/// Bridge configuration (defaults target the Hercules DJ Control MP3 e2).
 struct Config {
     var vendorID: UInt16 = 0x06F8
     var productID: UInt16 = 0xB105
     var interface: Int32 = 0
-    /// nil = détection automatique depuis les descripteurs USB.
+    /// nil = auto-detect from the USB descriptors.
     var endpointIn: UInt8? = nil
     var portName = "Hercules MP3 e2"
     var dump = false
     var listOnly = false
 
     static let usage = """
-    jog-bridge — passerelle USB bulk → CoreMIDI pour Hercules DJ Control MP3 e2
+    jog-bridge — USB bulk → CoreMIDI bridge for the Hercules DJ Control MP3 e2
 
-    Usage : jog-bridge [options]
+    Usage: jog-bridge [options]
 
-      --list            Liste les périphériques Hercules (VID 06F8) et leurs endpoints, puis quitte
-      --dump            Affiche les changements d'état de la console et les messages MIDI échangés
-      --name <nom>      Nom des ports MIDI virtuels (défaut : "Hercules MP3 e2")
-      --pid <hex>       Product ID USB (défaut : B105)
-      --interface <n>   Interface USB à réclamer (défaut : 0)
-      --in <hex>        Force l'endpoint d'entrée (ex. 0x82)
-      --help            Affiche cette aide
+      --list            List Hercules devices (VID 06F8) and their endpoints, then exit
+      --dump            Print console state changes and the MIDI messages exchanged
+      --name <name>     Name of the virtual MIDI ports (default: "Hercules MP3 e2")
+      --pid <hex>       USB product ID (default: B105)
+      --interface <n>   USB interface to claim (default: 0)
+      --in <hex>        Force the input endpoint (e.g. 0x82)
+      --help            Show this help
     """
 
     static func parse(_ args: [String]) -> Config {
@@ -39,7 +39,7 @@ struct Config {
             case "--help", "-h":
                 print(usage); exit(0)
             default:
-                fputs("Option inconnue : \(arg)\n\n\(usage)\n", stderr); exit(64)
+                fputs("Unknown option: \(arg)\n\n\(usage)\n", stderr); exit(64)
             }
         }
         return cfg
@@ -56,8 +56,8 @@ enum BridgeError: Error, CustomStringConvertible {
 
     var description: String {
         switch self {
-        case let .usb(call, rc): return "\(call) : \(usbErrorName(rc))"
-        case let .midi(call, st): return "\(call) : OSStatus \(st)"
+        case let .usb(call, rc): return "\(call): \(usbErrorName(rc))"
+        case let .midi(call, st): return "\(call): OSStatus \(st)"
         }
     }
 }

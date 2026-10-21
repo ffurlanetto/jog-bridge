@@ -6,6 +6,28 @@ DerivedData/
 *.xcodeproj/xcuserdata/
 *.xcworkspace/xcuserdata/
 
-# Artefacts de packaging (produits par scripts/build-pkg.sh)
+# Packaging artefacts (produced by scripts/build-pkg.sh)
 dist/
 *.pkg
+
+# Secrets and credentials (signing certificates, API keys)
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p8
+*.p12
+*.pfx
+*.mobileprovision
+AuthKey_*
+*.credentials
+id_rsa*
+id_ed25519*
+
+# Local agent state (Claude Code)
+.claude/settings.local.json
+.claude/run/
+CLAUDE.local.md
+AGENTS.local.md
+.mcp.json

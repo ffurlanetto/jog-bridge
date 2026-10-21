@@ -1,0 +1,36 @@
+{
+  "//": "Policy of the \"no code without a test\" gate (ADR 0009). Sources = what carries testable behaviour; scripts/ is exempt because postinstall and build-pkg.sh cannot be tested without touching the machine (see docs/testing.md).",
+  "version": 1,
+  "sources": [
+    "Sources/**"
+  ],
+  "tests": [
+    "Tests/**"
+  ],
+  "exempt": [
+    "**/*.md",
+    "**/*.json",
+    "**/*.yml",
+    "**/*.yaml",
+    "**/*.plist",
+    "**/*.svg",
+    "**/*.png",
+    "**/*.djayMidiMapping",
+    "docs/**",
+    "assets/**",
+    "scripts/**",
+    ".github/**",
+    ".claude/**",
+    "Makefile",
+    "Package.swift",
+    "LICENSE",
+    ".gitignore",
+    ".editorconfig"
+  ],
+  "//test_markers": "Unambiguous test declarations, looked for in ADDED lines (useful when a test lives inside a source file). Deliberately short: a false positive disarms the gate.",
+  "test_markers": [
+    "@Test\\b",
+    "#expect\\(",
+    "\\bfunc test[A-Z_]"
+  ]
+}

@@ -1,81 +1,79 @@
-# Protocole USB de la Hercules DJ Control MP3 e2
+# USB protocol of the Hercules DJ Control MP3 e2
 
-Établi par rétro-ingénierie ; la séquence d'initialisation et la table des LEDs
-proviennent de [foomatic/djcontrol](https://github.com/foomatic/djcontrol). Ce document
-décrit ce que le code de ce dépôt fait réellement.
+Established by reverse engineering; the initialisation sequence and the LED table come from
+[foomatic/djcontrol](https://github.com/foomatic/djcontrol). This document describes what the
+code in this repository actually does.
 
 ## Identification
 
-| Champ | Valeur |
+| Field | Value |
 |---|---|
 | Vendor ID | `0x06F8` (Hercules) |
 | Product ID | `0xB105` (DJ Control MP3 e2) |
-| Classe des interfaces | `0xFF` (vendor specific) : aucun pilote macOS générique |
+| Interface class | `0xFF` (vendor specific): no generic macOS driver |
 
-Exemple de sortie de `jog-bridge --list` :
+Sample output of `jog-bridge --list`:
 
 ```
-Périphérique 06F8:B105 (bus 0, adresse 3)
-  Interface 0 alt 0 — classe 0xFF
-    Endpoint 0x81 IN  bulk (max 64 octets)
-  Interface 1 alt 0 — classe 0xFF
-    Endpoint 0x82 IN  bulk (max 12 octets)
-    Endpoint 0x03 OUT bulk (max 12 octets)
+Device 06F8:B105 (bus 0, address 3)
+  Interface 0 alt 0 — class 0xFF
+    Endpoint 0x81 IN  bulk (max 64 bytes)
+  Interface 1 alt 0 — class 0xFF
+    Endpoint 0x82 IN  bulk (max 12 bytes)
+    Endpoint 0x03 OUT bulk (max 12 bytes)
 ```
 
-Le code réclame l'**interface 0** par défaut et lit son endpoint IN (`0x81`). L'interface 1
-est décrite avec des tailles de paquet invalides et macOS n'en crée pas les pipes ; elle
-n'est pas utilisée pour les données.
+The code claims **interface 0** by default and reads its IN endpoint (`0x81`). Interface 1 is
+described with invalid packet sizes and macOS does not create its pipes; it is not used for data.
 
 ## Initialisation
 
-Après `libusb_claim_interface`, la console reçoit cette séquence (`HerculesDevice.initialize`),
-dont les réponses sont ignorées :
+After `libusb_claim_interface`, the console receives this sequence (`HerculesDevice.initialize`),
+whose replies are ignored:
 
-1. Requêtes de contrôle IN (`bmRequestType 0xC0`, 2 octets) : `0x2C` / `wValue 0`, puis
-   `0x29` avec `wValue` = `0x0300`, `0x0400`, `0x0500`, `0x0600`.
-2. `0x2C` deux fois, puis `0x29` avec `0x0300`, `0x0400`, `0x0500`, `0x0600`, `0x0200`.
-3. `CLEAR_FEATURE(ENDPOINT_HALT)` sur l'endpoint `0x82`.
-4. Requête de contrôle OUT (`bmRequestType 0x40`) `0x27`, sans données.
+1. IN control requests (`bmRequestType 0xC0`, 2 bytes): `0x2C` / `wValue 0`, then `0x29` with
+   `wValue` = `0x0300`, `0x0400`, `0x0500`, `0x0600`.
+2. `0x2C` twice, then `0x29` with `0x0300`, `0x0400`, `0x0500`, `0x0600`, `0x0200`.
+3. `CLEAR_FEATURE(ENDPOINT_HALT)` on endpoint `0x82`.
+4. OUT control request (`bmRequestType 0x40`) `0x27`, with no data.
 
-Chaque transfert a un timeout de 500 ms. Le rôle exact de chaque requête n'est pas
-documenté ; la séquence est reprise telle quelle de djcontrol.
+Each transfer has a 500 ms timeout. The exact role of each request is not documented; the
+sequence is taken as is from djcontrol.
 
-## Trames d'entrée
+## Input frames
 
-La console envoie en continu des trames de **38 octets** sur l'endpoint IN. Toute trame
-d'une autre longueur est ignorée (et journalisée avec `--dump`).
+The console continuously sends **38-byte** frames on the IN endpoint. Any frame of another
+length is ignored (and logged with `--dump`).
 
-| Octets | Contenu |
+| Bytes | Content |
 |---|---|
-| 0…5 | Boutons, 1 bit par bouton (1 = appuyé) |
-| 6…18 | Potentiomètres, faders et encodeurs, valeur sur 8 bits |
-| 20, 36 | Recopies d'état liées à l'octet 3 (informatif, non converti en MIDI) |
-| 37 | Compteur de séquence (ignoré) |
+| 0…5 | Buttons, one bit per button (1 = pressed) |
+| 6…18 | Knobs, faders and encoders, 8-bit value |
+| 20, 36 | State mirrors tied to byte 3 (informational, not converted to MIDI) |
+| 37 | Sequence counter (ignored) |
 
-Les octets 19 et 21…35 ne sont pas interprétés. Le décodage en MIDI est décrit dans
+Bytes 19 and 21…35 are not interpreted. The decoding into MIDI is described in
 [midi-mapping.md](midi-mapping.md).
 
 ## LEDs
 
-Les LEDs se pilotent par **transferts de contrôle sur l'endpoint 0**, pas par les endpoints
-bulk. La console a 5 blocs de 16 bits :
+The LEDs are driven by **control transfers on endpoint 0**, not through the bulk endpoints.
+The console has 5 blocks of 16 bits:
 
-| Élément | Valeur |
+| Item | Value |
 |---|---|
 | `bmRequestType` | `0x40` (OUT, vendor, device) |
-| `bRequest` | `0x2D + n`, avec `n` = index du bloc (0…4) |
-| `wValue` | le bloc de 16 bits |
-| Données | aucune |
+| `bRequest` | `0x2D + n`, with `n` = block index (0…4) |
+| `wValue` | the 16-bit block |
+| Data | none |
 | Timeout | 100 ms |
 
-Les blocs 0 à 2 portent les LEDs **fixes**, les blocs 2 à 4 les LEDs **clignotantes**. Le
-bloc 2 porte les deux : bits 0…6 clignotants, bits 8…15 fixes. À chaque changement, les
-5 blocs sont réenvoyés ; ils le sont aussi après une reconnexion. La correspondance
-bouton → bloc/bit est dans `Sources/jog-bridge/LEDs.swift`.
+Blocks 0 to 2 hold the **steady** LEDs, blocks 2 to 4 the **blinking** LEDs. Block 2 holds both:
+bits 0…6 blinking, bits 8…15 steady. On every change, all 5 blocks are sent again; they are
+also sent after a reconnection. The button → block/bit mapping is in
+`Sources/jog-bridge/LEDs.swift`.
 
-## Déconnexion
+## Disconnection
 
-Une erreur de lecture autre que timeout, overflow ou interruption est traitée comme une
-déconnexion : l'interface est libérée et la boucle réessaie d'ouvrir la console toutes les
-2 s.
+A read error other than timeout, overflow or interruption is treated as a disconnection: the
+interface is released and the loop tries to open the console again every 2 s.
