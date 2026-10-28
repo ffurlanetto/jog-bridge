@@ -6,6 +6,9 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 ## [Unreleased]
 
 ### Changed
+- **The README is reorganised for DJs**: a quick install from the Releases page comes first, then
+  a compatibility table, a FAQ and a call for testers of other Hercules models. Building from
+  source, command-line use and the technical details move further down.
 - **The project is renamed `jog-bridge`** (formerly `hercules-bridge`) so as not to use the
   Hercules trademark as a name
   ([ADR 0008](docs/adr/0008-project-name-and-third-party-trademarks.md)). Binary, `.pkg`,
