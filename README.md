@@ -3,6 +3,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/ffurlanetto/jog-bridge/releases"><img src="https://img.shields.io/github/v/release/ffurlanetto/jog-bridge?include_prereleases&label=release" alt="Latest release"></a>
   <a href="https://github.com/ffurlanetto/jog-bridge/actions/workflows/ci.yml"><img src="https://github.com/ffurlanetto/jog-bridge/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-blue" alt="MIT licence"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13+">
@@ -11,23 +12,42 @@
 
 # jog-bridge
 
-**USB-to-MIDI bridge for DJ controllers on macOS.** Plug in the console, open your DJ software:
-it shows up as a MIDI device, LEDs included.
+**Use your Hercules DJ Control MP3 e2 on a modern Mac — no manufacturer driver needed.**
 
-Today, **jog-bridge** supports the **Hercules DJ Control MP3 e2**.
-
-The console is not a standard MIDI device: it exposes a "vendor specific" USB interface
-(class `0xFF`) and continuously sends 38-byte state frames on a bulk endpoint. This small daemon
-reads those frames with libusb, converts them to MIDI messages and publishes them on a
-**virtual MIDI port "Hercules MP3 e2"** visible to any application (djay, rekordbox, Serato…).
-The reverse direction works too: MIDI messages sent back by the application light the console's
-LEDs.
-
-No kernel extension, no DriverKit, no administrator rights at runtime.
+Install jog-bridge, plug in the console, open djay, rekordbox, Serato or Mixxx: the console shows
+up as a MIDI controller called **"Hercules MP3 e2"**, and its LEDs follow the software. It starts
+by itself at login and runs quietly in the background.
 
 > **jog-bridge is an independent project, not affiliated with Guillemot Corporation or Hercules,
 > and neither approved nor sponsored by them.** The USB protocol was established by reverse
 > engineering (see [Credits](#credits) and [Trademarks](#trademarks)).
+
+## Quick install
+
+1. **Download** the latest `jog-bridge-<version>.pkg` from the
+   [Releases page](https://github.com/ffurlanetto/jog-bridge/releases).
+2. **Open it.** The package is not signed, so macOS blocks it the first time: click **Done** (not
+   *Move to Bin*), then *System Settings → Privacy & Security* → **Open Anyway**.
+   [More on Gatekeeper](docs/troubleshooting.md#gatekeeper-blocks-the-pkg).
+3. **Allow it in the background**: *System Settings → General → Login Items & Extensions*, enable
+   **Jog Bridge**.
+4. **Plug in the console** and pick **"Hercules MP3 e2"** (input and output) in your DJ software's
+   MIDI settings.
+
+Not working? Open **Jog Bridge** from `/Applications`: the [status panel](#the-status-panel) tells
+you what is wrong and offers the fix.
+
+## Compatibility
+
+| | Status |
+|---|---|
+| **Hercules DJ Control MP3 e2** (`06F8:B105`) | ✅ Tested |
+| Other Hercules models (MP3 LE, Glow…) | ❓ Untested — [help us test](#other-hercules-controllers) |
+| macOS 13 Ventura or later | ✅ Required |
+| Apple Silicon Macs | ✅ Tested |
+| Intel Macs | ❓ Untested |
+| djay | ✅ Ready-made mapping included |
+| rekordbox, Serato, Mixxx, any CoreMIDI app | Works through MIDI Learn (no mapping shipped) |
 
 ## Features
 
@@ -40,7 +60,59 @@ No kernel extension, no DriverKit, no administrator rights at runtime.
 - Self-contained binary: libusb is statically linked.
 - Ready-made djay mapping: [`Hercules MP3 e2.djayMidiMapping`](Hercules%20MP3%20e2.djayMidiMapping).
 
-## 1. Prerequisites
+## The status panel
+
+Open **Jog Bridge** from `/Applications` (Spotlight or the Finder). A small window shows whether
+everything is working:
+
+- 🟢 **Jog Bridge is running** — the service is up, allowed in the background, the MIDI ports are
+  published and the console is connected.
+- 🟠 **Attention** — for example *Waiting for the console* (plug it in), or *Another app is using
+  the console* (close other DJ software or an old Hercules driver).
+- 🔴 **Problem** — the service is stopped, not loaded, or not allowed in *Login Items &
+  Extensions*. The panel offers the matching button: **Start**, **Restart** or **Open Login Items
+  Settings**.
+
+Under *Details*, **Show Log** opens `/tmp/jog-bridge.log` and **Copy Diagnostics** puts a report
+on the clipboard, ready to paste into an issue. Closing the window quits the panel only; the
+bridge keeps running in the background. See
+[ADR 0012](docs/adr/0012-status-panel-in-the-bundle.md).
+
+## In your DJ software
+
+Select the "Hercules MP3 e2" controller (input and output) in the MIDI settings, then either use
+the shipped djay mapping or **MIDI Learn** to bind each button. The port identifiers are fixed:
+the mapping is kept from one session to the next. The full table of notes and CCs is in
+[docs/midi-mapping.md](docs/midi-mapping.md).
+
+## Other Hercules controllers?
+
+Only the MP3 e2 has been tested, but other models of the same family may work with the `--pid`
+option. If you own one, [open a "New hardware" issue](https://github.com/ffurlanetto/jog-bridge/issues/new?template=hardware_support.md)
+with the output of `jog-bridge --list`: it is the fastest way to get your console supported.
+
+## FAQ
+
+**Why not the official Hercules driver?**
+jog-bridge does not need it: it talks to the console directly from user space, with no kernel
+extension and no DriverKit. If an old Hercules driver is still installed, uninstall it — it takes
+over the console's USB interface and the bridge cannot claim it.
+
+**Do I need administrator rights?**
+Only to install the package. At runtime the bridge runs as your user.
+
+**Does it work on Intel Macs?**
+Probably, but it has only been tested on Apple Silicon. Reports are welcome.
+
+**Does it work on iPad?**
+No. iPadOS does not allow this kind of USB access without a DriverKit extension that Apple has to
+approve: see [ADR 0002](docs/adr/0002-userspace-usb-access-with-libusb.md).
+
+<a id="2-build"></a>
+
+## Build from source
+
+### Prerequisites
 
 ```sh
 xcode-select --install          # Swift build tools
@@ -49,10 +121,7 @@ brew install libusb pkg-config
 
 macOS 13 or later. Homebrew is only needed on the machine that builds.
 
-> If an old Hercules driver was installed on this Mac, uninstall it: it takes over the USB
-> interface and the bridge will not be able to claim it.
-
-## 2. Build
+### Build
 
 ```sh
 swift build -c release
@@ -60,7 +129,7 @@ swift build -c release
 
 The binary is in `.build/release/jog-bridge`.
 
-## 3. Check the console (first time)
+### Check the console (first time)
 
 Plug in the console, then:
 
@@ -85,50 +154,25 @@ the matching MIDI message. **Ctrl-C** to stop.
 For an independent check, macOS's *Audio MIDI Setup* utility (Window → Show MIDI Studio) must
 show the "Hercules MP3 e2" port while the bridge is running.
 
-## 4. Install for automatic start
-
-### With the .pkg (recommended)
+### Build and install the package
 
 ```sh
 ./scripts/build-pkg.sh 1.0.0        # produces dist/jog-bridge-1.0.0.pkg
 open dist/jog-bridge-1.0.0.pkg
 ```
 
-The `.pkg` is neither signed nor notarised, so Gatekeeper blocks a **downloaded** copy on first
-double-click ("Apple could not verify that … is free of malware"). Do not click *Move to Bin*;
-click *Done*, then open *System Settings → Privacy & Security* and click **Open Anyway** for the
-package, or remove the quarantine attribute from the Terminal:
-
-```sh
-xattr -d com.apple.quarantine ~/Downloads/jog-bridge-1.0.0.pkg
-open ~/Downloads/jog-bridge-1.0.0.pkg
-```
-
-A package you build yourself with `./scripts/build-pkg.sh` carries no quarantine attribute and
-opens without a warning.
-
-The installation puts the app bundle `Jog Bridge.app` in
-`/Applications/`, installs the LaunchAgent in
-`~/Library/LaunchAgents/` and starts it immediately. The bundle gives the item a proper name
-("Jog Bridge") and icon in *System Settings → Login Items & Extensions*
-([ADR 0011](docs/adr/0011-app-bundle-for-the-launch-agent.md)); no loose binary is installed in
-`/usr/local/bin`.
-
-**Background permission.** On first start, macOS asks you to allow the **Jog Bridge** item.
-Check that it is enabled in *System Settings → General → Login Items & Extensions → Allow in the
-Background*. As long as it is disabled, launchd refuses to load the agent
-(`Bootstrap failed: 5: Input/output error`). Once enabled, log out and back in, or load the
-agent by hand:
-
-```sh
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.jog-bridge.plist
-```
-
-### From the command line
+A package you build yourself carries no quarantine attribute and opens without a Gatekeeper
+warning. From the command line:
 
 ```sh
 sudo installer -pkg dist/jog-bridge-1.0.0.pkg -target /
 ```
+
+The installation puts the app bundle `Jog Bridge.app` in `/Applications/`, installs the
+LaunchAgent in `~/Library/LaunchAgents/` and starts it immediately. The bundle gives the item a
+proper name ("Jog Bridge") and icon in *System Settings → Login Items & Extensions*
+([ADR 0011](docs/adr/0011-app-bundle-for-the-launch-agent.md)); no loose binary is installed in
+`/usr/local/bin`.
 
 Check that the service is running:
 
@@ -137,7 +181,20 @@ launchctl print gui/$(id -u)/local.jog-bridge | grep -E "state|pid|runs|last exi
 tail -f /tmp/jog-bridge.log
 ```
 
-### Running the installed binary
+## Command-line options
+
+| Option | Purpose |
+|---|---|
+| `--list` | List Hercules devices and their endpoints |
+| `--dump` | Print console state changes and the MIDI messages exchanged |
+| `--name <name>` | Rename the virtual MIDI ports |
+| `--pid <hex>` | Another product ID (MP3 LE, Glow…) — untested |
+| `--interface <n>` | USB interface (default 0) |
+| `--in <hex>` | Force the input endpoint (e.g. `0x81`) |
+| `--help` | Show the help |
+
+<details>
+<summary><strong>Running the installed binary</strong></summary>
 
 The executable lives inside the bundle, so it is not on your `PATH`. To use `--list` or `--dump`
 on an installed copy, call it by its full path (stop the agent first for `--dump`, which needs
@@ -153,7 +210,10 @@ Everywhere else in this documentation, `jog-bridge` stands for that executable (
 `.build/release/jog-bridge` in a checkout). If you want a short command, add an alias to your
 shell profile: `alias jog-bridge='/Applications/Jog Bridge.app/Contents/MacOS/jog-bridge'`.
 
-### Uninstall
+</details>
+
+<details>
+<summary><strong>Uninstall</strong></summary>
 
 ```sh
 launchctl bootout gui/$(id -u)/local.jog-bridge
@@ -165,52 +225,30 @@ sudo pkgutil --forget local.jog-bridge
 (An early build also installed `/usr/local/bin/jog-bridge`; the installer removes it, and you can
 delete it by hand if you installed that build and never upgraded.)
 
-## The status panel
-
-Open **Jog Bridge** from `/Applications` (Spotlight or the Finder). A small window shows whether
-everything is working:
-
-- 🟢 **Jog Bridge is running** — the service is up, allowed in the background, the MIDI ports are
-  published and the console is connected.
-- 🟠 **Attention** — for example *Waiting for the console* (plug it in), or *Another app is using
-  the console* (close other DJ software or an old Hercules driver).
-- 🔴 **Problem** — the service is stopped, not loaded, or not allowed in *Login Items &
-  Extensions*. The panel offers the matching button: **Start**, **Restart** or **Open Login Items
-  Settings**.
-
-Under *Details*, **Show Log** opens `/tmp/jog-bridge.log` and **Copy Diagnostics** puts a report
-on the clipboard, ready to paste into an issue. Closing the window quits the panel only; the
-bridge keeps running in the background. See
-[ADR 0012](docs/adr/0012-status-panel-in-the-bundle.md).
-
-## 5. In the DJ software
-
-Select the "Hercules MP3 e2" controller (input and output) in the MIDI settings, then either use
-the shipped djay mapping or **MIDI Learn** to bind each button. The port identifiers are fixed:
-the mapping is kept from one session to the next. The full table of notes and CCs is in
-[docs/midi-mapping.md](docs/midi-mapping.md).
-
-## Options
-
-| Option | Purpose |
-|---|---|
-| `--list` | List Hercules devices and their endpoints |
-| `--dump` | Print console state changes and the MIDI messages exchanged |
-| `--name <name>` | Rename the virtual MIDI ports |
-| `--pid <hex>` | Another product ID (MP3 LE, Glow…) — untested |
-| `--interface <n>` | USB interface (default 0) |
-| `--in <hex>` | Force the input endpoint (e.g. `0x81`) |
-| `--help` | Show the help |
+</details>
 
 ## Troubleshooting
 
+- **The agent does not start after installation** (`Bootstrap failed: 5: Input/output error`):
+  open **Jog Bridge** — the panel says why and offers the fix. Usually the item is not allowed in
+  *Login Items & Extensions* yet; enable it, then log out and back in
+  ([details](docs/troubleshooting.md#the-agent-does-not-start-bootstrap-failed-5-inputoutput-error)).
 - **"Cannot claim interface"**: a Hercules driver is still installed, or another application
   (Mixxx) already holds the console. Close it.
 - **Nothing in `--dump`**: check the endpoint with `--list`, try `--in 0x81`.
-- **The agent does not start after installation**: open **Jog Bridge** — the panel says why and
-  offers the fix; see also the background permission above.
 
 More details in [docs/troubleshooting.md](docs/troubleshooting.md).
+
+## How it works
+
+The console is not a standard MIDI device: it exposes a "vendor specific" USB interface
+(class `0xFF`) and continuously sends 38-byte state frames on a bulk endpoint. This small daemon
+reads those frames with libusb, converts them to MIDI messages and publishes them on a
+**virtual MIDI port "Hercules MP3 e2"** visible to any application. The reverse direction works
+too: MIDI messages sent back by the application light the console's LEDs.
+
+No kernel extension, no DriverKit, no administrator rights at runtime. See the
+[architecture](docs/architecture.md) and the [USB protocol](docs/usb-protocol.md).
 
 ## Documentation
 
@@ -222,12 +260,6 @@ More details in [docs/troubleshooting.md](docs/troubleshooting.md).
 - [Identity and trademarks](docs/branding.md)
 - [Architecture decisions (ADR)](docs/adr/README.md)
 - [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
-
-## Limits
-
-- macOS only. An iPadOS port is not possible as is: see
-  [ADR 0002](docs/adr/0002-userspace-usb-access-with-libusb.md).
-- Only the MP3 e2 (`06F8:B105`) has been tested.
 
 ## Credits
 
